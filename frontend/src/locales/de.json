@@ -1,0 +1,790 @@
+{
+  "app": {
+    "name": "iCloud Google Sync",
+    "documentTitle": "iCloud Google Calendar Sync",
+    "tagline": "Kalender-Synchronisierung"
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "loading": "Wird geladen …",
+    "loadFailed": "Laden fehlgeschlagen",
+    "retry": "Erneut versuchen",
+    "save": "Sichern",
+    "reset": "Verwerfen",
+    "yes": "Ja",
+    "no": "Nein",
+    "none": "–",
+    "unknownValue": "Unbekannt ({{value}})",
+    "notifications": "Mitteilungen"
+  },
+  "actions": {
+    "syncNow": "Jetzt synchronisieren",
+    "dryRun": "Dry-Run ausführen",
+    "testConnection": "Verbindung testen"
+  },
+  "nav": {
+    "label": "Bereiche",
+    "overview": "Übersicht",
+    "icloud": "iCloud",
+    "google": "Google",
+    "sync": "Sync",
+    "logs": "Protokolle",
+    "attention": "Benötigt Aufmerksamkeit",
+    "skipToContent": "Zum Inhalt springen"
+  },
+  "preferences": {
+    "open": "Darstellung und Konto",
+    "title": "Darstellung und Konto",
+    "description": "Erscheinungsbild, Sprache und Abmelden.",
+    "appearance": {
+      "title": "Erscheinungsbild",
+      "label": "Modus",
+      "system": "System",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
+    "language": {
+      "title": "Sprache",
+      "label": "Sprache der Oberfläche",
+      "names": {
+        "de": "Deutsch",
+        "en": "English"
+      }
+    },
+    "account": {
+      "title": "Konto",
+      "signedInAs": "Angemeldet als"
+    }
+  },
+  "auth": {
+    "logout": "Abmelden",
+    "sessionFailed": "Sitzung konnte nicht geprüft werden"
+  },
+  "login": {
+    "subtitle": "Melde dich an, um die Synchronisierung zu verwalten.",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "submit": "Anmelden",
+    "pitch": {
+      "title": "Ein geteilter iCloud-Kalender, sichtbar in Google",
+      "body": "Diese App liest einen privat mit dir geteilten iCloud-Kalender und überträgt seine Termine in einen eigenen Google-Kalender – nur in diese eine Richtung.",
+      "point1": "Der iCloud-Kalender wird nie verändert.",
+      "point2": "Änderungen landen in einem separaten Google-Kalender, nicht in deinem Hauptkalender.",
+      "point3": "Ein Löschschutz verhindert, dass versehentlich viele Termine verschwinden."
+    }
+  },
+  "status": {
+    "notConfigured": "Nicht eingerichtet",
+    "notConnected": "Nicht verbunden",
+    "icloud": {
+      "ok": "Verbunden",
+      "error": "Fehler",
+      "unknown": "Ungeprüft"
+    },
+    "google": {
+      "ok": "Verbunden",
+      "error": "Fehler",
+      "reauth_required": "Neu anmelden",
+      "unknown": "Ungeprüft"
+    }
+  },
+  "dashboard": {
+    "title": "Übersicht",
+    "description": "Zustand der Verbindungen und der letzten Synchronisierung auf einen Blick.",
+    "lastChecked": "Zuletzt geprüft",
+    "setup": {
+      "title": "Einrichtung",
+      "description": "Noch nicht alles ist eingerichtet. Diese Schritte fehlen:",
+      "icloud": "iCloud-Zugangsdaten hinterlegen",
+      "source": "Geteilten iCloud-Kalender auswählen",
+      "google": "Mit Google verbinden",
+      "target": "Google-Zielkalender auswählen oder erstellen",
+      "enable": "Automatische Synchronisierung aktivieren",
+      "done": "Erledigt",
+      "open": "Offen"
+    },
+    "sync": {
+      "active": "Synchronisierung aktiv",
+      "paused": "Synchronisierung pausiert",
+      "running": "Synchronisiert …",
+      "interval_one": "Läuft jede Minute automatisch.",
+      "interval_other": "Läuft alle {{count, number}} Minuten automatisch.",
+      "pausedHint": "Automatische Läufe sind ausgeschaltet. Du kannst sie unter „Sync“ aktivieren.",
+      "lastSuccess": "Letzte erfolgreiche Synchronisierung",
+      "nextRun": "Nächste Synchronisierung",
+      "never": "Noch nie",
+      "notScheduled": "Nicht geplant",
+      "inProgress": "Läuft gerade",
+      "notConfigured": "Quelle und Ziel müssen ausgewählt sein, bevor synchronisiert werden kann."
+    },
+    "icloud": {
+      "title": "iCloud",
+      "account": "Apple-ID",
+      "source": "Quellkalender",
+      "noSource": "Nicht ausgewählt",
+      "manage": "iCloud verwalten"
+    },
+    "google": {
+      "title": "Google",
+      "account": "Konto",
+      "target": "Zielkalender",
+      "noTarget": "Nicht ausgewählt",
+      "manage": "Google verwalten"
+    },
+    "numbers": {
+      "title": "Termine",
+      "mapped_one": "Synchronisierter Termin",
+      "mapped_other": "Synchronisierte Termine",
+      "lastRunAt": "Letzter Lauf: {{date}}",
+      "noRun": "Noch kein Lauf"
+    },
+    "errors": {
+      "title": "Aktuelle Fehler",
+      "all": "Alle Fehler",
+      "emptyTitle": "Keine Fehler",
+      "emptyBody": "Zuletzt ist alles reibungslos gelaufen."
+    }
+  },
+  "calendar": {
+    "owner": "Geteilt von",
+    "ownerValue": "Von {{owner}}",
+    "eventCount_one": "{{count, number}} Termin",
+    "eventCount_other": "{{count, number}} Termine",
+    "ownership": {
+      "own": "Eigener",
+      "shared": "Geteilt",
+      "unknown": "Herkunft unbekannt"
+    },
+    "access": {
+      "read": "Nur lesen",
+      "read_write": "Lesen und schreiben",
+      "unknown": "Zugriff unbekannt"
+    },
+    "badge": {
+      "shared": "Geteilt",
+      "primary": "Hauptkalender",
+      "selected": "Ausgewählt",
+      "createdByApp": "Von dieser App erstellt"
+    }
+  },
+  "icloud": {
+    "title": "iCloud",
+    "description": "Zugang zu iCloud und Auswahl des geteilten Kalenders, der übertragen wird.",
+    "credentials": {
+      "title": "Zugangsdaten",
+      "appleId": "Apple-ID",
+      "appleIdPlaceholder": "name@icloud.com",
+      "appPassword": "App-spezifisches Passwort",
+      "appPasswordPlaceholder": "abcd-efgh-ijkl-mnop",
+      "appPasswordFormat": "Vier Gruppen aus je vier Buchstaben, durch Bindestriche getrennt.",
+      "showPassword": "Passwort anzeigen",
+      "hidePassword": "Passwort verbergen",
+      "status": "Status",
+      "save": "Prüfen und sichern",
+      "saved": "Zugangsdaten geprüft und gesichert.",
+      "change": "Zugangsdaten ändern",
+      "remove": "Zugangsdaten entfernen",
+      "removed": "Zugangsdaten entfernt.",
+      "testedBeforeSave": "Die Zugangsdaten werden erst bei Apple geprüft und nur gesichert, wenn die Anmeldung klappt.",
+      "footer": "Das Passwort wird verschlüsselt gespeichert und nie wieder angezeigt.",
+      "hint": {
+        "title": "So erstellst du ein app-spezifisches Passwort",
+        "step1": "Öffne <site>account.apple.com</site> und melde dich an.",
+        "step2": "Wähle „Anmeldung und Sicherheit“ → „App-spezifische Passwörter“.",
+        "step3": "Erstelle ein neues Passwort, z. B. mit dem Namen „Kalender-Sync“, und füge es hier ein.",
+        "noMainPassword": "Dein normales Apple-ID-Passwort wird nie benötigt – gib es hier nicht ein."
+      },
+      "removeConfirm": {
+        "title": "Zugangsdaten entfernen?",
+        "body": "Die Apple-ID und das app-spezifische Passwort werden gelöscht, die Auswahl des Quellkalenders wird zurückgesetzt. Bis du neue Zugangsdaten einträgst, wird nichts mehr synchronisiert. Bereits übertragene Termine bleiben in Google erhalten."
+      }
+    },
+    "test": {
+      "ok": "Verbindung zu iCloud funktioniert.",
+      "failed": "Verbindung zu iCloud fehlgeschlagen.",
+      "principal": "CalDAV-Konto gefunden",
+      "calendarHome": "Kalenderverzeichnis gefunden"
+    },
+    "calendars": {
+      "title": "Quellkalender",
+      "refresh": "Neu suchen",
+      "footer": "Wähle den privat mit dir geteilten Kalender. Fehlt er in der Liste, hilft die Diagnose weiter.",
+      "selected": "„{{name}}“ ist jetzt der Quellkalender.",
+      "needCredentialsTitle": "Zuerst Zugangsdaten eintragen",
+      "needCredentialsBody": "Sobald die Apple-ID hinterlegt ist, werden hier deine Kalender angezeigt.",
+      "emptyTitle": "Keine Kalender gefunden",
+      "emptyBody": "iCloud hat keine Kalender geliefert. Starte die Diagnose, um die Ursache zu finden.",
+      "reason": {
+        "noEvents": "Enthält keine Termine (z. B. eine Erinnerungsliste)",
+        "notReadable": "Kann nicht gelesen werden"
+      }
+    },
+    "diagnostics": {
+      "title": "Diagnose",
+      "run": "Diagnose starten",
+      "rerun": "Erneut prüfen",
+      "introTitle": "Geteilter Kalender fehlt?",
+      "introBody": "Die Diagnose prüft Schritt für Schritt, was iCloud über CalDAV preisgibt, und erklärt das Ergebnis.",
+      "footer": "Die Diagnose liest nur Kalender-Eigenschaften, keine Termine.",
+      "checkedAt": "Geprüft am {{date}}",
+      "stepsLabel": "Prüfschritte",
+      "raw_one": "Technische Rohdaten ({{count, number}} Kalender)",
+      "raw_other": "Technische Rohdaten ({{count, number}} Kalender)",
+      "rawEmpty": "Keine Rohdaten vorhanden.",
+      "status": {
+        "ok": "in Ordnung",
+        "warn": "Warnung",
+        "fail": "fehlgeschlagen",
+        "skipped": "übersprungen"
+      },
+      "steps": {
+        "unknown": "Prüfschritt „{{key}}“",
+        "credentials": {
+          "title": "Zugangsdaten",
+          "ok": "Apple hat die Apple-ID und das app-spezifische Passwort akzeptiert.",
+          "warn": "Die Zugangsdaten wurden akzeptiert, die Antwort war aber ungewöhnlich.",
+          "fail": "Apple hat die Zugangsdaten abgelehnt.",
+          "skipped": "Keine Zugangsdaten hinterlegt."
+        },
+        "principal": {
+          "title": "CalDAV-Konto",
+          "ok": "Das CalDAV-Konto (Principal) wurde gefunden.",
+          "warn": "Das CalDAV-Konto wurde nur teilweise gefunden.",
+          "fail": "Das CalDAV-Konto wurde nicht gefunden.",
+          "skipped": "Übersprungen, weil ein vorheriger Schritt fehlgeschlagen ist."
+        },
+        "calendar_home": {
+          "title": "Kalenderverzeichnis",
+          "ok": "Das Kalenderverzeichnis wurde gefunden.",
+          "warn": "Das Kalenderverzeichnis wurde gefunden, ist aber unvollständig.",
+          "fail": "Das Kalenderverzeichnis wurde nicht gefunden.",
+          "skipped": "Übersprungen, weil ein vorheriger Schritt fehlgeschlagen ist."
+        },
+        "calendars": {
+          "title": "Kalender",
+          "ok": "{{total}} Kalender gefunden: {{own}} eigene, {{shared}} geteilte.",
+          "warn": "{{total}} Kalender gefunden, aber kein geteilter darunter.",
+          "fail": "Es wurden keine Kalender gefunden.",
+          "skipped": "Übersprungen, weil ein vorheriger Schritt fehlgeschlagen ist."
+        },
+        "shared_readable": {
+          "title": "Geteilte Kalender lesbar",
+          "ok": "{{readable}} von {{shared}} geteilten Kalendern können gelesen werden.",
+          "warn": "Nur {{readable}} von {{shared}} geteilten Kalendern können gelesen werden.",
+          "fail": "Kein geteilter Kalender kann gelesen werden.",
+          "skipped": "Übersprungen, weil keine geteilten Kalender gefunden wurden."
+        },
+        "delegation": {
+          "title": "Delegationen",
+          "ok": "Delegierter Zugriff: lesend für {{read_for}}, schreibend für {{write_for}} Konten.",
+          "warn": "Delegationen konnten nicht vollständig gelesen werden.",
+          "fail": "Delegationen konnten nicht gelesen werden.",
+          "skipped": "Delegationen wurden nicht geprüft."
+        }
+      },
+      "conclusion": {
+        "shared_accessible": {
+          "title": "Der geteilte Kalender ist erreichbar",
+          "body": "iCloud stellt den geteilten Kalender über CalDAV bereit. Wähle ihn unter „Quellkalender“ aus."
+        },
+        "shared_not_listed": {
+          "title": "iCloud zeigt den geteilten Kalender nicht an",
+          "body": "Die Anmeldung funktioniert, aber iCloud liefert über CalDAV keinen geteilten Kalender aus. Diese App kann nur sehen, was iCloud über diese Schnittstelle bereitstellt – ein Fehler in der App ist das nicht."
+        },
+        "shared_not_readable": {
+          "title": "Der geteilte Kalender ist sichtbar, aber nicht lesbar",
+          "body": "iCloud listet den geteilten Kalender, verweigert aber das Lesen seiner Termine über CalDAV. Meist ist die Einladung noch nicht vollständig angenommen oder die Freigabe wurde geändert."
+        },
+        "auth_failed": {
+          "title": "Anmeldung bei iCloud fehlgeschlagen",
+          "body": "Apple hat die Zugangsdaten abgelehnt. Prüfe die Apple-ID und erstelle bei Bedarf ein neues app-spezifisches Passwort."
+        },
+        "unreachable": {
+          "title": "iCloud ist nicht erreichbar",
+          "body": "Der Server konnte iCloud nicht erreichen. Prüfe die Internetverbindung des Servers und versuche es später erneut."
+        },
+        "not_configured": {
+          "title": "Keine Zugangsdaten hinterlegt",
+          "body": "Trage zuerst die Apple-ID und ein app-spezifisches Passwort ein."
+        },
+        "unknown": {
+          "title": "Ergebnis unbekannt",
+          "body": "Die Diagnose lieferte ein unbekanntes Ergebnis ({{code}})."
+        }
+      },
+      "prerequisites": {
+        "title": "Voraussetzungen, die erfüllt sein müssen:",
+        "accepted": "Die Einladung zum geteilten Kalender wurde auf dem iPhone (oder Mac) mit genau dieser Apple-ID angenommen.",
+        "web": "Der Kalender ist auf icloud.com im Kalender sichtbar, wenn du dich dort mit dieser Apple-ID anmeldest.",
+        "sameAccount": "Das app-spezifische Passwort gehört zur selben Apple-ID, mit der die Einladung angenommen wurde.",
+        "wait": "Nach dem Annehmen kann es einige Minuten dauern, bis iCloud den Kalender bereitstellt. Danach die Diagnose erneut starten.",
+        "noPublic": "Den Kalender öffentlich zu machen ist nicht nötig und nicht empfohlen – die App arbeitet ausschließlich mit der privaten Freigabe."
+      }
+    }
+  },
+  "google": {
+    "title": "Google",
+    "description": "Verbindung zu Google und Auswahl des Kalenders, in den die Termine geschrieben werden.",
+    "oauth": {
+      "connected": "Mit Google verbunden."
+    },
+    "connection": {
+      "title": "Verbindung",
+      "intro": "Melde dich bei Google an und erlaube der App, einen eigenen Kalender anzulegen und zu befüllen. Auf deine übrigen Kalender hat sie keinen Schreibzugriff.",
+      "connect": "Mit Google verbinden",
+      "reconnect": "Erneut verbinden",
+      "disconnect": "Verbindung trennen",
+      "disconnected": "Verbindung zu Google getrennt.",
+      "account": "Konto",
+      "status": "Status",
+      "access": "Zugriff",
+      "accessBasic": "Nur von der App erstellte Kalender",
+      "accessExtended": "Erweitert (eigene Kalender)",
+      "footer": "Du wirst zu Google weitergeleitet und kommst danach hierher zurück.",
+      "serverMissingTitle": "Google ist auf dem Server nicht eingerichtet",
+      "disconnectConfirm": {
+        "title": "Verbindung zu Google trennen?",
+        "body": "Die Berechtigung wird bei Google widerrufen und hier gelöscht. Die Synchronisierung stoppt, bis du dich erneut verbindest. Der Google-Kalender und seine Termine bleiben erhalten."
+      }
+    },
+    "extended": {
+      "title": "Erweiterter Zugriff (optional)",
+      "body": "Nur nötig, wenn du statt eines neuen Kalenders einen bereits vorhandenen eigenen Google-Kalender als Ziel verwenden möchtest.",
+      "point1": "Die App darf dann Termine in deinen eigenen Kalendern bearbeiten – sie tut es nur im ausgewählten Zielkalender.",
+      "point2": "Für einen neuen, von der App erstellten Kalender reicht die normale Verbindung.",
+      "grant": "Erweiterten Zugriff erteilen",
+      "footer": "Du kannst den Zugriff jederzeit in deinem Google-Konto unter „Sicherheit“ widerrufen."
+    },
+    "test": {
+      "ok": "Verbindung zu Google funktioniert ({{account}}).",
+      "failed": "Verbindung zu Google fehlgeschlagen."
+    },
+    "calendars": {
+      "title": "Zielkalender",
+      "footer": "Die Termine werden nur in den ausgewählten Kalender geschrieben.",
+      "selected": "„{{name}}“ ist jetzt der Zielkalender.",
+      "needConnectionTitle": "Zuerst mit Google verbinden",
+      "needConnectionBody": "Nach der Verbindung erscheinen hier deine Google-Kalender.",
+      "emptyTitle": "Noch kein passender Kalender",
+      "emptyBody": "Erstelle einen eigenen Kalender für die synchronisierten Termine.",
+      "role": {
+        "owner": "Eigentümer",
+        "writer": "Bearbeiten",
+        "reader": "Nur lesen",
+        "freeBusyReader": "Nur Frei/Gebucht"
+      },
+      "lock": {
+        "primary_locked": "Hauptkalender ist gesperrt – unter „Sync“ freigeben",
+        "not_writable": "Kein Schreibzugriff",
+        "scope_missing": "Erfordert erweiterten Zugriff"
+      }
+    },
+    "create": {
+      "open": "Neuen Kalender erstellen",
+      "title": "Neuen Kalender erstellen",
+      "description": "Legt in deinem Google-Konto einen eigenen Kalender für die übertragenen Termine an.",
+      "name": "Name",
+      "defaultName": "iCloud Sync",
+      "selectAfter": "Als Zielkalender verwenden",
+      "submit": "Erstellen",
+      "created": "Kalender „{{name}}“ erstellt."
+    },
+    "primary": {
+      "title": "Hauptkalender als Ziel verwenden?",
+      "body1": "Synchronisierte Termine werden dann direkt zwischen deine eigenen Termine geschrieben. Gelöschte iCloud-Termine werden auch dort gelöscht.",
+      "body2": "Empfohlen ist ein separater Kalender – er lässt sich mit einem Klick ein- und ausblenden oder komplett entfernen.",
+      "confirm": "Hauptkalender verwenden"
+    },
+    "grouping": {
+      "title": "Wo erscheint der Kalender?",
+      "body": "Google sortiert Kalender selbst: Eigene zusätzliche Kalender stehen unter „Meine Kalender“. Der Zielkalender wird von der App nie mit anderen geteilt."
+    }
+  },
+  "sync": {
+    "title": "Sync",
+    "description": "Zeitplan, Zeitraum und Schutzregeln der Synchronisierung.",
+    "run": {
+      "title": "Manuell ausführen",
+      "footer": "Ein Dry-Run zeigt, was sich ändern würde, ohne etwas in Google zu schreiben.",
+      "started": "Synchronisierung gestartet.",
+      "startedDry": "Dry-Run gestartet."
+    },
+    "guard": {
+      "title": "Löschschutz hat ausgelöst",
+      "body_one": "Der letzte Lauf hätte {{formatted}} Termin gelöscht. Das liegt über deinem Grenzwert, deshalb wurde nichts gelöscht.",
+      "body_other": "Der letzte Lauf hätte {{formatted}} Termine gelöscht. Das liegt über deinem Grenzwert, deshalb wurde nichts gelöscht.",
+      "release": "Löschungen einmalig freigeben",
+      "confirmTitle": "Löschungen einmalig freigeben?",
+      "confirmBody_one": "{{formatted}} Termin wird im Google-Kalender gelöscht.",
+      "confirmBody_other": "{{formatted}} Termine werden im Google-Kalender gelöscht.",
+      "confirmOnce": "Die Freigabe gilt nur für diesen einen Lauf. Danach greift der Löschschutz wieder.",
+      "confirm": "Löschen und synchronisieren"
+    },
+    "latest": {
+      "showAll_one": "{{count, number}} Änderung anzeigen",
+      "showAll_other": "Alle {{count, number}} Änderungen anzeigen",
+      "title": "Ergebnis des letzten Laufs",
+      "emptyTitle": "Noch kein Lauf",
+      "emptyBody": "Sobald synchronisiert wurde, siehst du hier, was sich geändert hat."
+    },
+    "settings": {
+      "saved": "Einstellungen gesichert.",
+      "unsaved": "Ungesicherte Änderungen",
+      "schedule": {
+        "title": "Zeitplan",
+        "footer": "Kürzere Abstände bringen Änderungen schneller nach Google, erzeugen aber mehr Anfragen."
+      },
+      "enabled": {
+        "label": "Automatisch synchronisieren",
+        "description": "Läuft im Hintergrund im eingestellten Abstand."
+      },
+      "interval": {
+        "label": "Abstand"
+      },
+      "range": {
+        "title": "Zeitraum",
+        "footer": "Nur Termine in diesem Fenster werden übertragen. Ältere und spätere bleiben unberührt."
+      },
+      "pastMonths": {
+        "label": "Rückblick"
+      },
+      "futureMonths": {
+        "label": "Vorschau"
+      },
+      "deletion": {
+        "title": "Löschschutz",
+        "footer": "Wenn mehr Löschungen geplant sind als erlaubt, wird nichts gelöscht und du entscheidest selbst."
+      },
+      "deletionDryRun": {
+        "label": "Löschungen nur planen",
+        "description": "Löschungen werden protokolliert, aber nie ausgeführt."
+      },
+      "maxAbsolute": {
+        "label": "Höchstens löschen",
+        "description": "Pro Lauf"
+      },
+      "maxPercent": {
+        "label": "Höchstens löschen (Anteil)",
+        "description": "Bezogen auf alle synchronisierten Termine"
+      },
+      "content": {
+        "title": "Inhalte"
+      },
+      "reminders": {
+        "label": "Erinnerungen übernehmen",
+        "description": "Weckzeiten aus iCloud werden zu Google-Erinnerungen."
+      },
+      "descriptions": {
+        "label": "Beschreibungen übernehmen",
+        "description": "Notizen der Termine werden mit übertragen."
+      },
+      "timezone": {
+        "label": "Standard-Zeitzone",
+        "description": "Für Termine ohne eigene Zeitzone."
+      },
+      "target": {
+        "title": "Zielkalender"
+      },
+      "allowPrimary": {
+        "label": "Hauptkalender als Ziel erlauben",
+        "description": "Entsperrt den Google-Hauptkalender in der Kalenderauswahl.",
+        "warningTitle": "Nicht empfohlen",
+        "warningBody": "Im Hauptkalender mischen sich synchronisierte und eigene Termine. Die Auswahl muss zusätzlich unter „Google“ bestätigt werden."
+      }
+    }
+  },
+  "runs": {
+    "dryRunBadge": "Dry-Run",
+    "startedAt": "Gestartet",
+    "duration": "Dauer",
+    "sourceEvents": "Termine in iCloud",
+    "openDetail": "Lauf vom {{date}} öffnen",
+    "status": {
+      "running": "Läuft",
+      "success": "Erfolgreich",
+      "partial": "Teilweise",
+      "failed": "Fehlgeschlagen",
+      "skipped": "Übersprungen"
+    },
+    "trigger": {
+      "schedule": "Zeitplan",
+      "manual": "Manuell",
+      "dry_run": "Dry-Run",
+      "startup": "Serverstart"
+    },
+    "action": {
+      "create": "Erstellt",
+      "update": "Aktualisiert",
+      "delete": "Gelöscht",
+      "reset_instance": "Einzeltermin zurückgesetzt",
+      "skip_delete": "Löschung zurückgehalten",
+      "error": "Fehler"
+    },
+    "counts": {
+      "created": "Erstellt",
+      "updated": "Aktualisiert",
+      "deleted": "Gelöscht",
+      "unchanged": "Unverändert",
+      "failed": "Fehlgeschlagen"
+    },
+    "countsShort": {
+      "created": "+{{value}}",
+      "updated": "~{{value}}",
+      "deleted": "−{{value}}",
+      "failed": "!{{value}}"
+    },
+    "columns": {
+      "started": "Gestartet",
+      "status": "Status",
+      "trigger": "Auslöser",
+      "duration": "Dauer",
+      "changes": "Änderungen"
+    },
+    "deletions": {
+      "summary": "Löschungen: {{planned}} geplant, {{executed}} ausgeführt.",
+      "blocked": "Vom Löschschutz blockiert.",
+      "dryRun": "Nur geplant (Dry-Run)."
+    },
+    "detail": {
+      "title": "Lauf #{{id}}",
+      "description": "Zusammenfassung und alle Änderungen dieses Laufs."
+    },
+    "items": {
+      "title": "Änderungen",
+      "emptyTitle": "Keine Änderungen",
+      "emptyBody": "In diesem Lauf musste nichts geändert werden.",
+      "untitled": "Ohne Titel",
+      "plannedOnly": "Nur geplant",
+      "instance": "Einzelner Termin einer Serie"
+    }
+  },
+  "logs": {
+    "title": "Protokolle",
+    "description": "Verlauf der Synchronisierungen, Fehler und technische Details.",
+    "tabs": {
+      "history": "Verlauf",
+      "errors": "Fehler",
+      "all": "Alle Einträge",
+      "stats": "Statistik",
+      "diagnostics": "Technik"
+    },
+    "level": {
+      "info": "Info",
+      "warning": "Warnung",
+      "error": "Fehler"
+    },
+    "category": {
+      "sync": "Sync",
+      "icloud": "iCloud",
+      "google": "Google",
+      "auth": "Anmeldung",
+      "system": "System"
+    },
+    "filter": {
+      "level": "Stufe",
+      "category": "Bereich",
+      "allLevels": "Alle Stufen",
+      "allCategories": "Alle Bereiche"
+    },
+    "history": {
+      "filterLabel": "Läufe filtern",
+      "filter": {
+        "all": "Alle",
+        "success": "Erfolgreich",
+        "failed": "Fehlgeschlagen"
+      },
+      "emptyTitle": "Keine Läufe",
+      "emptyBody": "Für diesen Filter gibt es noch keine Synchronisierungen."
+    },
+    "errors": {
+      "emptyTitle": "Keine Fehler",
+      "emptyBody": "Es wurden keine Fehler protokolliert."
+    },
+    "all": {
+      "emptyTitle": "Keine Einträge",
+      "emptyBody": "Für diese Filter gibt es keine Protokolleinträge."
+    },
+    "stats": {
+      "rangeLabel": "Zeitraum",
+      "range_one": "{{count, number}} Tag",
+      "range_other": "{{count, number}} Tage",
+      "perDay": "Änderungen pro Tag",
+      "caption_one": "Änderungen am letzten Tag",
+      "caption_other": "Änderungen der letzten {{count, number}} Tage",
+      "failedShort_one": "{{count, number}} fehlgeschlagen",
+      "failedShort_other": "{{count, number}} fehlgeschlagen",
+      "emptyTitle": "Keine Daten",
+      "emptyBody": "In diesem Zeitraum gab es keine Läufe.",
+      "totals": {
+        "runs": "Läufe",
+        "failed": "Fehlgeschlagen",
+        "created": "Erstellt",
+        "updated": "Aktualisiert",
+        "deleted": "Gelöscht"
+      },
+      "columns": {
+        "date": "Tag",
+        "changes": "Verteilung",
+        "runs": "Läufe"
+      }
+    },
+    "diagnostics": {
+      "app": "Anwendung",
+      "appVersion": "Version",
+      "pythonVersion": "Python",
+      "baseUrl": "Basis-URL",
+      "redirectUri": "Google-Weiterleitungs-URI",
+      "redirectUriHint": "Muss in der Google Cloud Console exakt so eingetragen sein.",
+      "serverTime": "Serverzeit",
+      "secureCookies": "Sichere Cookies",
+      "database": "Datenbank",
+      "databaseOk": "Erreichbar",
+      "migration": "Schema-Stand",
+      "scheduler": "Zeitplaner",
+      "schedulerRunning": "Läuft",
+      "nextRun": "Nächster Lauf",
+      "jobCount": "Aufgaben",
+      "secrets": "Geheimnisse",
+      "secretsFooter": "Zeigt nur, ob ein Wert gesetzt ist – nie den Wert selbst.",
+      "encryptionKey": "Verschlüsselungsschlüssel",
+      "googleClient": "Google-Client",
+      "adminPassword": "Admin-Passwort"
+    }
+  },
+  "pagination": {
+    "label": "Seiten",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "range": "{{from}}–{{to}} von {{total}}"
+  },
+  "units": {
+    "minutes_one": "Minute",
+    "minutes_other": "Minuten",
+    "months_one": "Monat",
+    "months_other": "Monate",
+    "events_one": "Termin",
+    "events_other": "Termine",
+    "percent": "%"
+  },
+  "validation": {
+    "required": "Bitte ausfüllen.",
+    "range": "Erlaubt sind ganze Zahlen von {{min}} bis {{max}}."
+  },
+  "fields": {
+    "username": "Benutzername",
+    "password": "Passwort",
+    "apple_id": "Apple-ID",
+    "app_password": "App-spezifisches Passwort",
+    "calendar_url": "Kalender",
+    "calendar_id": "Kalender",
+    "name": "Name",
+    "enabled": "Automatisch synchronisieren",
+    "interval_minutes": "Abstand",
+    "past_months": "Rückblick",
+    "future_months": "Vorschau",
+    "deletion_dry_run": "Löschungen nur planen",
+    "deletion_max_absolute": "Höchstens löschen",
+    "deletion_max_percent": "Höchstens löschen (Anteil)",
+    "sync_reminders": "Erinnerungen übernehmen",
+    "sync_descriptions": "Beschreibungen übernehmen",
+    "default_timezone": "Standard-Zeitzone",
+    "allow_primary_target": "Hauptkalender als Ziel erlauben",
+    "days": "Tage",
+    "limit": "Anzahl",
+    "offset": "Startposition",
+    "level": "Stufe",
+    "category": "Bereich",
+    "status": "Status"
+  },
+  "messages": {
+    "sync": {
+      "success": "Synchronisierung erfolgreich.",
+      "unchanged": "Alles aktuell – nichts zu ändern.",
+      "partial_failure": "Synchronisierung teilweise fehlgeschlagen: Einige Termine konnten nicht übertragen werden.",
+      "failed": "Synchronisierung fehlgeschlagen.",
+      "source_incomplete": "iCloud hat unvollständige Daten geliefert. Zur Sicherheit wurde nichts gelöscht.",
+      "deletion_guard_tripped": "Löschschutz hat ausgelöst: Es wären mehr Termine gelöscht worden als erlaubt.",
+      "deletion_dry_run": "Löschungen wurden nur geplant, nicht ausgeführt.",
+      "not_configured": "Quell- oder Zielkalender fehlt.",
+      "cancelled": "Synchronisierung abgebrochen."
+    },
+    "auth": {
+      "login": "Anmeldung erfolgreich."
+    },
+    "system": {
+      "started": "Anwendung gestartet.",
+      "stopped": "Anwendung beendet."
+    },
+    "settings": {
+      "updated": "Einstellungen gespeichert."
+    },
+    "icloud": {
+      "credentials_saved": "iCloud-Zugangsdaten gespeichert.",
+      "credentials_removed": "iCloud-Zugangsdaten entfernt.",
+      "source_selected": "Quellkalender ausgewählt.",
+      "diagnosis": {
+        "shared_accessible": "Diagnose: Geteilter Kalender erreichbar.",
+        "shared_not_listed": "Diagnose: Kein geteilter Kalender gefunden.",
+        "shared_not_readable": "Diagnose: Geteilter Kalender nicht lesbar.",
+        "auth_failed": "Diagnose: Anmeldung bei iCloud fehlgeschlagen.",
+        "unreachable": "Diagnose: iCloud nicht erreichbar.",
+        "not_configured": "Diagnose: Keine iCloud-Zugangsdaten hinterlegt."
+      }
+    },
+    "google": {
+      "connected": "Google-Konto verbunden.",
+      "disconnected": "Google-Konto getrennt.",
+      "calendar_created": "Google-Kalender erstellt.",
+      "target_selected": "Zielkalender ausgewählt."
+    }
+  },
+  "errors": {
+    "unknown": "Ein unerwarteter Fehler ist aufgetreten ({{code}}).",
+    "network": {
+      "unreachable": "Der Server ist nicht erreichbar. Bitte prüfe die Verbindung."
+    },
+    "auth": {
+      "required": "Bitte melde dich an.",
+      "invalid_credentials": "Benutzername oder Passwort ist falsch.",
+      "rate_limited_one": "Zu viele Fehlversuche. Bitte in {{count, number}} Sekunde erneut versuchen.",
+      "rate_limited_other": "Zu viele Fehlversuche. Bitte in {{count, number}} Sekunden erneut versuchen.",
+      "csrf_invalid": "Die Sitzung ist abgelaufen. Bitte lade die Seite neu."
+    },
+    "validation": {
+      "invalid": "Ungültige Eingabe: {{fields}}."
+    },
+    "icloud": {
+      "not_configured": "Es sind keine iCloud-Zugangsdaten hinterlegt.",
+      "auth_failed": "Apple hat die Zugangsdaten abgelehnt. Prüfe die Apple-ID und das app-spezifische Passwort.",
+      "unreachable": "iCloud ist gerade nicht erreichbar. Bitte später erneut versuchen.",
+      "unexpected_response": "iCloud hat unerwartet geantwortet. Bitte später erneut versuchen.",
+      "invalid_apple_id": "Die Apple-ID muss eine E-Mail-Adresse sein.",
+      "invalid_app_password_format": "Das app-spezifische Passwort hat das Format xxxx-xxxx-xxxx-xxxx.",
+      "calendar_not_found": "Dieser Kalender wurde in iCloud nicht gefunden. Bitte die Liste neu laden.",
+      "calendar_not_readable": "Dieser Kalender kann nicht gelesen werden.",
+      "calendar_no_events": "Dieser Kalender enthält keine Termine (z. B. eine Erinnerungsliste)."
+    },
+    "google": {
+      "not_configured": "Google-Zugangsdaten (Client-ID und Secret) fehlen auf dem Server. Bitte den Administrator fragen.",
+      "not_connected": "Es ist kein Google-Konto verbunden.",
+      "reauth_required": "Die Google-Berechtigung ist abgelaufen oder wurde widerrufen. Bitte erneut verbinden.",
+      "oauth_state_invalid": "Die Anmeldung bei Google ist abgelaufen. Bitte erneut verbinden.",
+      "oauth_denied": "Die Anmeldung bei Google wurde abgebrochen.",
+      "oauth_failed": "Die Anmeldung bei Google ist fehlgeschlagen. Bitte erneut versuchen.",
+      "scope_missing": "Dafür ist der erweiterte Google-Zugriff nötig.",
+      "api_error": "Google hat einen Fehler gemeldet ({{status}}).",
+      "rate_limited": "Google begrenzt gerade die Anfragen. Bitte später erneut versuchen.",
+      "calendar_not_found": "Der Google-Kalender existiert nicht oder ist nicht zugänglich.",
+      "calendar_not_writable": "In diesen Google-Kalender darf nicht geschrieben werden.",
+      "primary_locked": "Der Hauptkalender ist gesperrt. Erlaube ihn zuerst unter „Sync“."
+    },
+    "sync": {
+      "not_configured": "Quell- oder Zielkalender fehlt.",
+      "already_running": "Es läuft bereits eine Synchronisierung."
+    },
+    "internal": {
+      "error": "Ein interner Fehler ist aufgetreten. Details stehen im Serverprotokoll."
+    }
+  }
+}

@@ -1,0 +1,105 @@
+# iCloud Google Calendar Sync
+#
+#   1. cp .env.example .env            (adjust APP_BASE_URL etc.)
+#   2. create the files in ./secrets/  (see secrets/README.md)
+#   3. docker compose up -d --build
+#
+# The app listens on 127.0.0.1:${HOST_PORT} by default. Put a TLS reverse proxy in front
+# (your existing one, or the optional Caddy service: `docker compose --profile caddy up -d`).
+
+name: icloud-google-sync
+
+services:
+  app:
+    build:
+      context: .
+    image: icloud-google-sync:1.0.0
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 40s
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8000}:8000"
+    environment:
+      APP_BASE_URL: ${APP_BASE_URL:?set APP_BASE_URL in .env}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
+      # Secrets are never passed as plain environment variables, only as files:
+      APP_ENCRYPTION_KEY_FILE: /run/secrets/app_encryption_key
+      ADMIN_PASSWORD_FILE: /run/secrets/admin_password
+      GOOGLE_CLIENT_ID_FILE: /run/secrets/google_client_id
+      GOOGLE_CLIENT_SECRET_FILE: /run/secrets/google_client_secret
+    secrets:
+      - app_encryption_key
+      - admin_password
+      - google_client_id
+      - google_client_secret
+    volumes:
+      - data:/data
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional TLS reverse proxy with automatic Let's Encrypt certificates.
+  # Only started with: docker compose --profile caddy up -d
+  caddy:
+    profiles: ["caddy"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+secrets:
+  app_encryption_key:
+    file: ./secrets/app_encryption_key
+  admin_password:
+    file: ./secrets/admin_password
+  google_client_id:
+    file: ./secrets/google_client_id
+  google_client_secret:
+    file: ./secrets/google_client_secret
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:

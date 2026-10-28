@@ -1,0 +1,29 @@
+[project]
+name = "icloud-google-calendar-sync"
+version = "1.0.0"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+filterwarnings = ["ignore::DeprecationWarning:fastapi.testclient", "ignore::DeprecationWarning:starlette"]
+
+[tool.ruff]
+line-length = 160
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
+ignore = ["S101", "B008", "S311", "SIM102", "SIM105", "SIM108"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "E501"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+packages = ["app"]
+ignore_missing_imports = true

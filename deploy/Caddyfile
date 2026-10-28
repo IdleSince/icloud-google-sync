@@ -1,0 +1,6 @@
+# Optional reverse proxy (compose profile "caddy"). Set PUBLIC_HOSTNAME in .env,
+# e.g. PUBLIC_HOSTNAME=calsync.example.org, and point its DNS A/AAAA record to this host.
+{$PUBLIC_HOSTNAME} {
+	encode zstd gzip
+	reverse_proxy app:8000
+}

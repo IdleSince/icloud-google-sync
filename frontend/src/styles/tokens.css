@@ -1,0 +1,242 @@
+/*
+ * Design tokens — the ONLY place where raw color values live.
+ *
+ * Palette follows Apple's system colors, adjusted where the stock value misses
+ * WCAG AA (4.5:1 for body text) on the surface it sits on:
+ *   - accent text   #0066CC on #FFFFFF = 5.6:1   (stock #007AFF is only 4.0:1)
+ *   - danger        #D70015 on #FFFFFF = 5.4:1
+ *   - success       #1E7A35 on #FFFFFF = 5.4:1
+ *   - warning       #B25000 on #FFFFFF = 5.2:1
+ *   - text-secondary #6E6E73 on #F2F2F7 = 4.6:1
+ *   - dark accent fill #0071E3 with white label = 4.7:1
+ *   - dark text-secondary #A1A1A6 on #1C1C1E = 6.5:1
+ *
+ * Light and dark are defined three times on purpose:
+ *   1. :root                                 — light (default)
+ *   2. prefers-color-scheme: dark            — system dark, unless the user forced light
+ *   3. :root[data-theme="dark"]              — user forced dark
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Surfaces ---- */
+  --color-bg-grouped: #f2f2f7;            /* iOS systemGroupedBackground */
+  --color-surface: #ffffff;               /* grouped rows / cards */
+  --color-surface-raised: #ffffff;        /* popovers, dialogs, sheets */
+  --color-surface-sunken: #e9e9ee;        /* inputs on grouped rows, code blocks */
+  --color-material-chrome: rgba(246, 246, 248, 0.78); /* translucent sidebar/tab bar */
+  --color-material-solid: #f6f6f8;        /* same, when transparency is reduced */
+  --color-fill: rgba(120, 120, 128, 0.12);        /* hover / pressed fill */
+  --color-fill-strong: rgba(120, 120, 128, 0.2);  /* selected row */
+  --color-scrim: rgba(0, 0, 0, 0.28);     /* dims the page behind a modal */
+
+  /* ---- Text ---- */
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #6e6e73;
+  --color-text-tertiary: #8e8e93;          /* decorative only (chevrons), never body copy */
+  --color-text-inverse: #ffffff;
+
+  /* ---- Lines ---- */
+  --color-separator: #d1d1d6;
+  --color-border-control: #c7c7cc;
+
+  /* ---- Semantic ---- */
+  --color-accent: #0066cc;
+  --color-accent-text: #0066cc;
+  --color-on-accent: #ffffff;
+  --color-accent-soft: rgba(0, 102, 204, 0.1);
+  --color-focus-ring: rgba(0, 102, 204, 0.55);
+  --color-danger: #d70015;
+  --color-on-danger: #ffffff;
+  --color-danger-soft: rgba(215, 0, 21, 0.08);
+  --color-success: #1e7a35;
+  --color-success-soft: rgba(30, 122, 53, 0.1);
+  --color-warning: #b25000;
+  --color-warning-soft: rgba(178, 80, 0, 0.1);
+
+  /* Icon tiles in the navigation (Apple Settings style colored squares).
+     White glyph on each: all ≥ 3:1 (non-text contrast). */
+  --color-tile-overview: #5856d6;
+  --color-tile-icloud: #0a74e0;
+  --color-tile-google: #1e7a35;
+  --color-tile-sync: #c4410c;
+  --color-tile-logs: #636366;
+  --color-tile-glyph: #ffffff;
+
+  /* Chart bars */
+  --color-chart-created: #1e7a35;
+  --color-chart-updated: #0066cc;
+  --color-chart-deleted: #d70015;
+  --color-chart-track: rgba(120, 120, 128, 0.12);
+
+  /* ---- Shadows ---- (bigger surfaces read as thicker, §12) */
+  --shadow-card: 0 0.5px 0 rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-popover: 0 8px 28px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  --shadow-sheet: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+
+  /* ---- Radii ----
+     12px groups with 8px controls inside 4px padding stay concentric
+     (outer = inner + padding). 6px for badges/chips. */
+  --radius-group: 0.75rem;
+  --radius-control: 0.5rem;
+  --radius-chip: 0.375rem;
+  --radius-tile: 0.4375rem;  /* 7px on a 28px tile ≈ Apple's 25% icon corner */
+
+  /* ---- Spacing ---- 4px grid; everything is a multiple. */
+  --space-unit: 0.25rem;
+  --space-gutter-compact: 1rem;    /* 16px: iOS inset-grouped side margin */
+  --space-gutter-wide: 2rem;       /* 32px: room to breathe next to a sidebar */
+  --space-section: 2rem;           /* between grouped sections (iOS ≈ 35pt) */
+  --size-sidebar: 16.5rem;         /* fits German labels like „Protokolle“ + icon tile */
+  --size-tabbar: 3.5rem;           /* 56px: 49pt iOS bar + room for 2-line label */
+  --size-row-min: 2.75rem;         /* 44px touch target (HIG) */
+  --size-row-min-fine: 2.25rem;    /* 36px for a precise pointer */
+
+  /* ---- Type ---- (rem so the user's browser font size scales everything) */
+  --font-family-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --font-size-tab: 0.6875rem;       /* 11 — tab bar labels (iOS 10pt + 1 for Segoe/Roboto) */
+  --font-size-caption: 0.75rem;     /* 12 */
+  --font-size-footnote: 0.8125rem;  /* 13 — iOS footnote: group headers/footers */
+  --font-size-body: 0.9375rem;      /* 15 — fine pointer; 17 on coarse (below) */
+  --font-size-headline: 1.0625rem;  /* 17 */
+  --font-size-title: 1.375rem;      /* 22 — iOS title2 */
+  --font-size-large-title: 1.75rem; /* 28 — iOS title1; page titles */
+  --font-size-metric: 1.875rem;     /* 30 — dashboard numbers */
+  --tracking-large: -0.02em;        /* tighten as text grows (§15) */
+  --tracking-headline: -0.01em;
+  --tracking-body: 0;
+  --tracking-small: 0.01em;
+  --leading-tight: 1.15;
+  --leading-body: 1.45;
+
+  /* ---- Motion ----
+     Nothing here is gesture-driven, so CSS transitions are fine (§3).
+     100ms press feedback (§1), 200ms crossfades, 280ms sheet travel.
+     The curve approximates a critically damped spring (damping 1.0,
+     response ≈ 0.3s): fast start, no overshoot. */
+  --duration-press: 100ms;
+  --duration-fade: 200ms;
+  --duration-sheet: 280ms;
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --material-blur: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-bg-grouped: #000000;
+    --color-surface: #1c1c1e;
+    --color-surface-raised: #2c2c2e;
+    --color-surface-sunken: #2c2c2e;
+    --color-material-chrome: rgba(28, 28, 30, 0.76);
+    --color-material-solid: #1c1c1e;
+    --color-fill: rgba(118, 118, 128, 0.24);
+    --color-fill-strong: rgba(118, 118, 128, 0.36);
+    --color-scrim: rgba(0, 0, 0, 0.55);
+    --color-text-primary: #f5f5f7;
+    --color-text-secondary: #a1a1a6;
+    --color-text-tertiary: #636366;
+    --color-text-inverse: #000000;
+    --color-separator: #38383a;
+    --color-border-control: #48484a;
+    --color-accent: #0071e3;
+    --color-accent-text: #4aa3ff;
+    --color-on-accent: #ffffff;
+    --color-accent-soft: rgba(10, 132, 255, 0.18);
+    --color-focus-ring: rgba(74, 163, 255, 0.7);
+    --color-danger: #ff6961;
+    --color-on-danger: #000000;
+    --color-danger-soft: rgba(255, 105, 97, 0.14);
+    --color-success: #30d158;
+    --color-success-soft: rgba(48, 209, 88, 0.14);
+    --color-warning: #ffb340;
+    --color-warning-soft: rgba(255, 179, 64, 0.14);
+    --color-tile-logs: #8e8e93;
+    --color-chart-created: #30d158;
+    --color-chart-updated: #4aa3ff;
+    --color-chart-deleted: #ff6961;
+    --color-chart-track: rgba(118, 118, 128, 0.24);
+    --shadow-card: 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+    --shadow-popover: 0 8px 28px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+    --shadow-sheet: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg-grouped: #000000;
+  --color-surface: #1c1c1e;
+  --color-surface-raised: #2c2c2e;
+  --color-surface-sunken: #2c2c2e;
+  --color-material-chrome: rgba(28, 28, 30, 0.76);
+  --color-material-solid: #1c1c1e;
+  --color-fill: rgba(118, 118, 128, 0.24);
+  --color-fill-strong: rgba(118, 118, 128, 0.36);
+  --color-scrim: rgba(0, 0, 0, 0.55);
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-tertiary: #636366;
+  --color-text-inverse: #000000;
+  --color-separator: #38383a;
+  --color-border-control: #48484a;
+  --color-accent: #0071e3;
+  --color-accent-text: #4aa3ff;
+  --color-on-accent: #ffffff;
+  --color-accent-soft: rgba(10, 132, 255, 0.18);
+  --color-focus-ring: rgba(74, 163, 255, 0.7);
+  --color-danger: #ff6961;
+  --color-on-danger: #000000;
+  --color-danger-soft: rgba(255, 105, 97, 0.14);
+  --color-success: #30d158;
+  --color-success-soft: rgba(48, 209, 88, 0.14);
+  --color-warning: #ffb340;
+  --color-warning-soft: rgba(255, 179, 64, 0.14);
+  --color-tile-logs: #8e8e93;
+  --color-chart-created: #30d158;
+  --color-chart-updated: #4aa3ff;
+  --color-chart-deleted: #ff6961;
+  --color-chart-track: rgba(118, 118, 128, 0.24);
+  --shadow-card: 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+  --shadow-popover: 0 8px 28px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  --shadow-sheet: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+
+/* Fingers need bigger type and targets than a mouse (§18: density follows input). */
+@media (pointer: coarse) {
+  :root {
+    --font-size-body: 1.0625rem; /* 17 = iOS body */
+  }
+}
+
+/* Increased contrast: solid lines, darker secondary text, opaque materials. */
+@media (prefers-contrast: more) {
+  :root {
+    --color-text-secondary: #3a3a3c;
+    --color-separator: #8e8e93;
+    --color-border-control: #636366;
+    --color-material-chrome: var(--color-material-solid);
+    --color-focus-ring: #0040dd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-text-secondary: #d1d1d6;
+      --color-separator: #8e8e93;
+      --color-focus-ring: #8ec5ff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --color-text-secondary: #d1d1d6;
+    --color-separator: #8e8e93;
+    --color-focus-ring: #8ec5ff;
+  }
+}
+
+/* Reduced transparency: materials become solid, no blur (§14). */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --color-material-chrome: var(--color-material-solid);
+    --material-blur: 0px;
+  }
+}
