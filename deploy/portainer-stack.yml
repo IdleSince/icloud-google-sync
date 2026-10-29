@@ -1,0 +1,62 @@
+# iCloud Google Calendar Sync - stack for Portainer (local only, no reverse proxy needed)
+#
+# Portainer -> Stacks -> Add stack
+#   Build method "Repository":  https://github.com/Dustin284/icloud-google-sync
+#                               Compose path: deploy/portainer-stack.yml
+#   or "Web editor":            paste this file
+# Then fill in the environment variables below (section "Environment variables").
+#
+# The web UI listens on 127.0.0.1:8000 of the Docker host only - not reachable from the network.
+# Open it through an SSH tunnel from your PC:
+#   ssh -L 8000:127.0.0.1:8000 user@docker-host      then browse to  http://localhost:8000
+# Google accepts http://localhost as OAuth redirect, so nothing has to be exposed to the internet.
+
+services:
+  app:
+    image: ${ICGS_IMAGE:-ghcr.io/dustin284/icloud-google-sync:latest}
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 40s
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8000}:8000"
+    environment:
+      # Address you type into the browser. Keep http://localhost:8000 for the SSH-tunnel setup.
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8000}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      # Required - set them in Portainer, never commit them:
+      #   APP_ENCRYPTION_KEY   32 random bytes, base64:  openssl rand -base64 32 | tr '+/' '-_'
+      #   ADMIN_PASSWORD       login password for the web UI
+      #   GOOGLE_CLIENT_ID     OAuth client (type "Web application") from the Google Cloud console
+      #   GOOGLE_CLIENT_SECRET with redirect URI  http://localhost:8000/api/google/oauth/callback
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
+    volumes:
+      - data:/data
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  data:

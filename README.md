@@ -213,6 +213,40 @@ docker compose ps            # Status "healthy" abwarten
 docker compose logs -f app   # strukturierte JSON-Logs
 ```
 
+### Variante C: Portainer, nur lokal (ohne Domain, ohne HTTPS)
+
+Die Anwendung muss **weder aus dem Internet noch aus dem Heimnetz** erreichbar sein. Bei der
+Google-Anmeldung schickt Google nur deinen Browser zurück. Google selbst ruft den Server nie auf.
+Ohne HTTPS akzeptiert Google als Rücksprungadresse allerdings nur `http://localhost`. Deshalb
+öffnest du die Oberfläche über einen SSH-Tunnel. Sie wird nur zum Einrichten und Nachsehen
+gebraucht, der Abgleich läuft ohne sie weiter.
+
+1. **Google-OAuth-Client** wie in [Abschnitt 4](#4-google-cloud-projekt-calendar-api-oauth-client)
+   anlegen, als Weiterleitungs-URI aber `http://localhost:8000/api/google/oauth/callback` eintragen.
+2. **Schlüssel erzeugen** (auf einem beliebigen Rechner, Ergebnis in den Passwortmanager):
+   `openssl rand -base64 32 | tr '+/' '-_'`.
+   Unter Windows geht auch PowerShell:
+   `$b=New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b).Replace('+','-').Replace('/','_')`
+3. In **Portainer → Stacks → Add stack**:
+   - *Build method* **Repository**: URL `https://github.com/Dustin284/icloud-google-sync`,
+     *Compose path* `deploy/portainer-stack.yml`, oder den Inhalt dieser Datei in den *Web editor*
+     kopieren.
+   - Unter **Environment variables** eintragen: `APP_ENCRYPTION_KEY`, `ADMIN_PASSWORD`,
+     `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+   - *Deploy the stack*.
+4. **Oberfläche öffnen:** auf deinem PC `ssh -L 8000:127.0.0.1:8000 benutzer@docker-host`
+   ausführen und im Browser `http://localhost:8000` aufrufen. Der Port ist auf dem Docker-Host nur
+   an `127.0.0.1` gebunden und damit im Netzwerk unsichtbar.
+
+> [!NOTE]
+> Wer die Oberfläche lieber direkt im Heimnetz unter einer eigenen Adresse öffnen will, braucht
+> einen Hostnamen mit öffentlicher Domain und ein gültiges Zertifikat, z. B. von einem Reverse
+> Proxy mit DNS-Challenge. Erreichbar aus dem Internet muss er auch dann nicht sein. Dann
+> `APP_BASE_URL=https://…` setzen und die Weiterleitungs-URI bei Google entsprechend anpassen.
+
+**Update in Portainer:** Stack öffnen → *Pull and redeploy* (bzw. *Update the stack* mit
+„Re-pull image“).
+
 **Update auf eine neue Version:** `docker compose pull && docker compose up -d`. Datenbank-
 migrationen laufen beim Start automatisch. Wer Updates bewusst steuern will, trägt in `.env` eine
 feste Version ein, z. B. `ICGS_IMAGE=ghcr.io/dustin284/icloud-google-sync:1.1.0`.

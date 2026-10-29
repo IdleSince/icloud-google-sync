@@ -14,6 +14,9 @@ Alle für Anwender sichtbaren Änderungen an iCloud Google Calendar Sync.
   einmal. Ist Google schon verbunden, wird der passende Google-Kalender sofort angelegt.
 - Einzelne Kalender lassen sich pausieren oder aus der Synchronisierung nehmen. Dabei wird weder in
   Google noch in iCloud etwas gelöscht.
+- Fertiges Container-Abbild zum Herunterladen, Einrichtungsskript für den Server und eine Vorlage für
+  Portainer. Für Portainer genügt der Betrieb nur im eigenen Netz: Die Oberfläche öffnest du über einen
+  SSH-Tunnel unter `localhost`, aus dem Internet muss nichts erreichbar sein.
 
 ### Verbessert
 
