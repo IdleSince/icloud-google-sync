@@ -20,12 +20,13 @@ from app import http_retry, security, services  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.crypto import encrypt  # noqa: E402
 from app.db import reset_engine, run_migrations, session_scope  # noqa: E402
-from app.models import AppSettings, Credential  # noqa: E402
+from app.models import AppSettings, Credential, SyncPair  # noqa: E402
 
 from .fakes import APP_PASSWORD, APPLE_ID, HOME, FakeCalendar, FakeGoogle, FakeICloud  # noqa: E402
 
 TARGET = "sync123@group.calendar.google.com"
 SOURCE_PATH = HOME + "shared-family/"
+SOURCE_URL = f"https://p42-caldav.icloud.com{SOURCE_PATH}"
 
 
 @pytest.fixture(autouse=True)
@@ -85,10 +86,18 @@ def configured(icloud: FakeICloud, google: FakeGoogle) -> None:
             )
         )
         s = db.get(AppSettings, 1) or AppSettings(id=1)
-        s.source_calendar_url = f"https://p42-caldav.icloud.com{SOURCE_PATH}"
-        s.source_calendar_name = "Familie"
-        s.source_calendar_shared = True
-        s.target_calendar_id = TARGET
-        s.target_calendar_name = "iCloud Sync"
         s.created_calendar_ids = [TARGET]
         db.add(s)
+        db.add(
+            SyncPair(
+                id=1,
+                enabled=True,
+                source_calendar_url=SOURCE_URL,
+                source_calendar_name="Familie",
+                source_calendar_owner="anna@example.com",
+                source_calendar_shared=True,
+                target_calendar_id=TARGET,
+                target_calendar_name="Familie (anna@example.com)",
+                target_is_primary=False,
+            )
+        )

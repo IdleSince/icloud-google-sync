@@ -76,6 +76,16 @@ describe('API codes are translated', () => {
     }
   })
 
+  it('every informational log code in docs/api.md has a text', () => {
+    const section = md.slice(md.indexOf('Informational log codes'), md.indexOf('Warnings/errors in the log'))
+    const codes = [...section.matchAll(/`([a-z_]+\.[a-z_.]+)`/g)].map((m) => m[1]!).filter((c) => !c.endsWith('.') && !c.startsWith('params.'))
+    expect(codes).toEqual(expect.arrayContaining(['pair.enabled', 'pair.disabled', 'pair.removed']))
+    for (const [lang, map] of Object.entries(locales)) {
+      const missing = codes.filter((c) => !has(map, `messages.${c}`))
+      expect(missing, lang).toEqual([])
+    }
+  })
+
   it('synthetic client codes and the generic fallback exist', () => {
     expectEverywhere(['errors.network.unreachable', 'errors.unknown', 'errors.internal.error'])
   })

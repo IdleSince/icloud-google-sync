@@ -7,7 +7,7 @@ import threading
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from .caldav.client import CalDAVClient
@@ -18,7 +18,7 @@ from .errors import AppError, GoogleReauthRequired, ICloudAuthError
 from .google.calendar import GoogleCalendarClient
 from .google.oauth import GoogleOAuth, TokenProvider
 from .logging_setup import log_event
-from .models import AppSettings, Credential, LogEntry, SyncRun, utcnow
+from .models import AppSettings, Credential, LogEntry, SyncPair, SyncRun, utcnow
 from .sync.engine import RunOptions, SyncEngine
 from .sync.lock import is_locked, pair_lock
 
@@ -96,16 +96,22 @@ def sync_running() -> bool:
     return is_locked(LOCK_NAME)
 
 
-def _fail_run(run_id: int | None, opts: RunOptions, code: str, params: dict[str, object] | None = None) -> None:
+def _fail_run(run_id: int | None, opts: RunOptions, code: str, params: dict[str, object] | None = None, pair_id: int | None = None) -> int:
     with session_scope() as db:
         run = db.get(SyncRun, run_id) if run_id else None
         if run is None:
             run = SyncRun(trigger=opts.trigger, dry_run=opts.dry_run)
+            pair = db.get(SyncPair, pair_id) if pair_id else None
+            if pair is not None:
+                run.pair_id, run.calendar_name = pair.id, pair.source_calendar_name
+                run.source_calendar_url, run.target_calendar_id = pair.source_calendar_url, pair.target_calendar_id
             db.add(run)
         run.status = "failed"
         run.message_code = code
         run.message_params = dict(params or {})
         run.finished_at = utcnow()
+        db.flush()
+        return run.id
 
 
 def _run_id(run_id: int | None, engine: SyncEngine | None) -> int | None:
@@ -116,83 +122,163 @@ def _run_id(run_id: int | None, engine: SyncEngine | None) -> int | None:
     return None
 
 
-def execute_run(opts: RunOptions, run_id: int | None = None) -> int | None:
-    """Runs one sync under the pair lock. Never raises; outcome is persisted on the run."""
+def runnable_pairs(db: Session, pair_ids: list[int] | None = None) -> list[SyncPair]:
+    """Pairs with a target, oldest first: all enabled ones, or exactly the given ids."""
+    query = select(SyncPair).where(SyncPair.target_calendar_id.is_not(None)).order_by(SyncPair.id)
+    if pair_ids is not None:
+        query = query.where(SyncPair.id.in_(pair_ids))
+    else:
+        query = query.where(SyncPair.enabled.is_(True))
+    return list(db.execute(query).scalars())
+
+
+# Errors that concern the whole account/connection: the remaining pairs would fail the same way.
+FATAL_CODES = {"icloud.unreachable", "icloud.not_configured", "google.not_connected", "google.not_configured"}
+ACCOUNT_CODES = {"icloud.unreachable", "icloud.unexpected_response", "google.api_error", "google.rate_limited"}
+
+
+def _handle_error(exc: Exception, run_id: int | None, opts: RunOptions, pair_id: int | None) -> tuple[str, bool, int]:
+    """Persists the failure on the run. Returns (code, fatal, run id); fatal stops the remaining pairs."""
+    if isinstance(exc, ICloudAuthError):
+        set_credential_status("icloud", "error", exc.code)
+        failed = _fail_run(run_id, opts, exc.code, pair_id=pair_id)
+        log_event("error", "icloud", exc.code, {})
+        return exc.code, True, failed
+    if isinstance(exc, GoogleReauthRequired):
+        set_credential_status("google", "reauth_required", exc.code)
+        failed = _fail_run(run_id, opts, exc.code, pair_id=pair_id)
+        log_event("error", "google", exc.code, {})
+        return exc.code, True, failed
+    if isinstance(exc, AppError):
+        prefix = exc.code.split(".", 1)[0]
+        category = prefix if prefix in ("icloud", "google") else "sync"
+        # A missing or locked calendar is a problem of that pair, not of the whole account.
+        if category in ("icloud", "google") and exc.code in ACCOUNT_CODES:
+            set_credential_status(category, "error", exc.code)
+        failed = _fail_run(run_id, opts, exc.code, exc.params, pair_id=pair_id)
+        log_event("error", category, exc.code, {**exc.params, **({"pair_id": pair_id} if pair_id else {})})
+        return exc.code, exc.code in FATAL_CODES, failed
+    log.exception("sync run crashed")
+    failed = _fail_run(run_id, opts, "internal.error", pair_id=pair_id)
+    log_event("error", "sync", "internal.error", {})
+    return "internal.error", False, failed
+
+
+def execute_run(opts: RunOptions, run_ids: dict[int, int] | None = None, pair_ids: list[int] | None = None) -> list[int]:
+    """Syncs the runnable pairs one after another under the global lock.
+
+    Never raises; every outcome is persisted on a run row. `run_ids` maps pair id -> pre-created
+    run (manual runs, those pairs are synced). Returns the ids of the runs written; a pair skipped
+    as unchanged has none.
+    """
     global current_run_id
+    run_ids = dict(run_ids or {})
+    if pair_ids is None and run_ids:
+        pair_ids = list(run_ids)
     with pair_lock(LOCK_NAME) as acquired:
         if not acquired:
-            if run_id is not None:
-                _fail_run(run_id, opts, "sync.already_running")
-            return run_id
-        current_run_id = run_id
+            for rid in run_ids.values():
+                _fail_run(rid, opts, "sync.already_running")
+            return list(run_ids.values())
+        written: list[int] = []
         caldav = google = oauth = None
-        engine: SyncEngine | None = None
         try:
-            with session_scope() as db:
-                s = app_settings(db)
-                if not s.source_calendar_url or not s.target_calendar_id:
-                    if opts.trigger == "schedule":
-                        return None
-                    raise AppError("sync.not_configured", 409)
-                apple_id, password = icloud_credentials(db)
+            try:
+                with session_scope() as db:
+                    targets = [p.id for p in runnable_pairs(db, pair_ids)]
+                    if not targets:
+                        if opts.trigger == "schedule":
+                            return []
+                        raise AppError("sync.not_configured", 409)
+                    apple_id, password = icloud_credentials(db)
                 caldav = make_caldav(apple_id, password, cancel=shutdown_event)
                 google, oauth = make_google(cancel=shutdown_event)
-                run = db.get(SyncRun, run_id) if run_id else None
-                engine = SyncEngine(db, caldav, google, cancel=shutdown_event)
-                result = engine.run(opts, run)
-                result_id = result.id if result else None
-                if result is not None:
-                    level = "info" if result.status == "success" else "warning"
-                    log_event(
-                        level,
-                        "sync",
-                        result.message_code,
-                        {"run_id": result.id, "created": result.created, "updated": result.updated, "deleted": result.deleted, "failed": result.failed},
-                        db=db,
-                    )
-            set_credential_status("icloud", "ok", None)
-            set_credential_status("google", "ok", None)
-            return result_id
-        except ICloudAuthError as exc:
-            set_credential_status("icloud", "error", exc.code)
-            _fail_run(_run_id(run_id, engine), opts, exc.code)
-            log_event("error", "icloud", exc.code, {})
-        except GoogleReauthRequired as exc:
-            set_credential_status("google", "reauth_required", exc.code)
-            _fail_run(_run_id(run_id, engine), opts, exc.code)
-            log_event("error", "google", exc.code, {})
-        except AppError as exc:
-            category = exc.code.split(".", 1)[0] if exc.code.split(".", 1)[0] in ("icloud", "google") else "sync"
-            if category in ("icloud", "google") and exc.code not in ("icloud.not_configured", "google.not_connected", "google.not_configured"):
-                set_credential_status(category, "error", exc.code)
-            _fail_run(_run_id(run_id, engine), opts, exc.code, exc.params)
-            log_event("error", category, exc.code, exc.params)
-        except Exception:
-            log.exception("sync run crashed")
-            _fail_run(_run_id(run_id, engine), opts, "internal.error")
-            log_event("error", "sync", "internal.error", {})
+            except Exception as exc:
+                for pid, rid in list(run_ids.items()) or [(0, 0)]:
+                    _handle_error(exc, rid or None, opts, pid or None)
+                return list(run_ids.values())
+
+            any_ok = False
+            for index, pair_id in enumerate(targets):
+                remaining = targets[index + 1 :]
+                if shutdown_event.is_set():
+                    for pid in targets[index:]:
+                        if pid in run_ids:
+                            _fail_run(run_ids[pid], opts, "sync.cancelled")
+                    break
+                run_id = run_ids.get(pair_id)
+                current_run_id = run_id
+                engine: SyncEngine | None = None
+                try:
+                    with session_scope() as db:
+                        pair = db.get(SyncPair, pair_id)
+                        if pair is None:
+                            raise AppError("sync.not_configured", 409)
+                        run = db.get(SyncRun, run_id) if run_id else None
+                        engine = SyncEngine(db, caldav, google, cancel=shutdown_event)
+                        result = engine.run(opts, pair, run)
+                        if result is not None:
+                            written.append(result.id)
+                            log_event(
+                                "info" if result.status == "success" else "warning",
+                                "sync",
+                                result.message_code,
+                                {
+                                    "run_id": result.id,
+                                    "pair_id": pair_id,
+                                    "created": result.created,
+                                    "updated": result.updated,
+                                    "deleted": result.deleted,
+                                    "failed": result.failed,
+                                },
+                                db=db,
+                            )
+                    any_ok = True
+                except Exception as exc:
+                    code, fatal, failed_id = _handle_error(exc, _run_id(run_id, engine), opts, pair_id)
+                    written.append(failed_id)
+                    if fatal:
+                        for pid in remaining:
+                            if pid in run_ids:
+                                _fail_run(run_ids[pid], opts, code)
+                                written.append(run_ids[pid])
+                        break
+            if any_ok:
+                set_credential_status("icloud", "ok", None)
+                set_credential_status("google", "ok", None)
+            return written
         finally:
             current_run_id = None
             for closable in (caldav, google, oauth):
                 if closable is not None:
                     closable.close()
-        return run_id
 
 
-def start_manual_run(dry_run: bool, allow_mass_deletion: bool) -> int:
+def start_manual_run(dry_run: bool, allow_mass_deletion: bool, pair_id: int | None = None) -> list[int]:
+    """Creates one run row per pair up front (so the UI can follow them) and starts the work."""
     if sync_running():
         raise AppError("sync.already_running", 409)
     opts = RunOptions(trigger="dry_run" if dry_run else "manual", dry_run=dry_run, allow_mass_deletion=allow_mass_deletion, force_full=True)
     with session_scope() as db:
-        s = app_settings(db)
-        if not s.source_calendar_url or not s.target_calendar_id:
+        pairs = runnable_pairs(db, [pair_id] if pair_id is not None else None)
+        if not pairs:
             raise AppError("sync.not_configured", 409)
-        run = SyncRun(trigger=opts.trigger, dry_run=dry_run, status="running")
-        db.add(run)
-        db.flush()
-        run_id = run.id
-    spawn(lambda: execute_run(opts, run_id), name=f"sync-run-{run_id}")
-    return run_id
+        run_ids: dict[int, int] = {}
+        for pair in pairs:
+            run = SyncRun(
+                trigger=opts.trigger,
+                dry_run=dry_run,
+                status="running",
+                pair_id=pair.id,
+                calendar_name=pair.source_calendar_name,
+                source_calendar_url=pair.source_calendar_url,
+                target_calendar_id=pair.target_calendar_id,
+            )
+            db.add(run)
+            db.flush()
+            run_ids[pair.id] = run.id
+    spawn(lambda: execute_run(opts, run_ids), name=f"sync-run-{min(run_ids.values())}")
+    return list(run_ids.values())
 
 
 def spawn(target: object, name: str) -> threading.Thread:

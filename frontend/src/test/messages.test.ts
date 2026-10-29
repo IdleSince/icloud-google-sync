@@ -25,6 +25,16 @@ describe('translateCode', () => {
     expect(text).toContain(new Intl.ListFormat('de', { style: 'long', type: 'conjunction' }).format(['Apple-ID', 'App-spezifisches Passwort']))
   })
 
+  it('translates the pair error and log codes', () => {
+    for (const code of ['google.target_in_use', 'pair.not_found', 'pair.exists']) {
+      expect(translateCode(i18n, code)).toBe(i18n.t(`errors.${code}`))
+    }
+    for (const code of ['pair.enabled', 'pair.disabled', 'pair.removed']) {
+      // params.pair_id travels along but must not break the lookup.
+      expect(translateCode(i18n, code, { pair_id: 3 })).toBe(i18n.t(`messages.${code}`))
+    }
+  })
+
   it('falls back to a generic message for unknown codes', () => {
     expect(translateCode(i18n, 'foo.bar_baz')).toBe(i18n.t('errors.unknown', { code: 'foo.bar_baz' }))
     expect(translateCode(i18n, null)).toBe(i18n.t('errors.unknown', { code: 'internal.error' }))

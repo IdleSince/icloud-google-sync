@@ -23,7 +23,7 @@ RUN /venv/bin/pip install -r /tmp/requirements.txt
 FROM ${PYTHON_IMAGE} AS runtime
 LABEL org.opencontainers.image.title="icloud-google-calendar-sync" \
       org.opencontainers.image.description="One-way sync of a private iCloud calendar into a Google calendar" \
-      org.opencontainers.image.version="1.0.0"
+      org.opencontainers.image.version="1.1.0"
 
 ENV PATH="/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \

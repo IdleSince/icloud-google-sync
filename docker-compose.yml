@@ -1,8 +1,11 @@
 # iCloud Google Calendar Sync
 #
+# Quick start on a server: deploy/install.sh does all of this (see README, section 5).
 #   1. cp .env.example .env            (adjust APP_BASE_URL etc.)
 #   2. create the files in ./secrets/  (see secrets/README.md)
-#   3. docker compose up -d --build
+#   3. docker compose up -d            (pulls the prebuilt image from ghcr.io)
+#
+# Build locally instead: docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 #
 # The app listens on 127.0.0.1:${HOST_PORT} by default. Put a TLS reverse proxy in front
 # (your existing one, or the optional Caddy service: `docker compose --profile caddy up -d`).
@@ -11,9 +14,7 @@ name: icloud-google-sync
 
 services:
   app:
-    build:
-      context: .
-    image: icloud-google-sync:1.0.0
+    image: ${ICGS_IMAGE:-ghcr.io/OWNER/icloud-google-sync:latest}
     restart: unless-stopped
     init: true
     stop_grace_period: 40s

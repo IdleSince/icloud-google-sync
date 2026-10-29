@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { api, qk } from '@/api/endpoints'
+import { usePairNames } from '@/api/hooks'
 import type { LogCategory, LogEntry, LogLevel, RunStatus, RunSummary, StatsDay } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Group, Row } from '@/components/common/Group'
@@ -193,6 +194,7 @@ function HistoryTab() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="pl-4 type-footnote text-text-secondary">{t('runs.columns.started')}</TableHead>
+                  <TableHead className="hidden type-footnote text-text-secondary split:table-cell">{t('runs.columns.calendar')}</TableHead>
                   <TableHead className="type-footnote text-text-secondary">{t('runs.columns.status')}</TableHead>
                   <TableHead className="hidden type-footnote text-text-secondary split:table-cell">{t('runs.columns.trigger')}</TableHead>
                   <TableHead className="hidden text-right type-footnote text-text-secondary columns:table-cell">{t('runs.columns.duration')}</TableHead>
@@ -218,10 +220,12 @@ function HistoryTab() {
                       >
                         {formatDateTime(run.started_at, locale)}
                       </button>
-                      <div className="type-footnote mt-0.5 text-text-secondary split:hidden">
+                      <div className="type-footnote mt-0.5 flex flex-col gap-0.5 text-text-secondary split:hidden">
+                        {run.calendar_name && <span className="break-words text-text-primary">{run.calendar_name}</span>}
                         <CountsInline run={run} />
                       </div>
                     </TableCell>
+                    <TableCell className="hidden whitespace-normal text-text-primary split:table-cell">{run.calendar_name ?? t('common.none')}</TableCell>
                     <TableCell className="whitespace-normal">
                       <div className="flex flex-wrap gap-1">
                         <StatusBadge tone={toneOf(RUN_STATUS_TONE, run.status)}>{tEnum(t, 'runs.status', run.status)}</StatusBadge>
@@ -256,6 +260,7 @@ function LogList({ items }: { items: LogEntry[] }) {
   const { t } = useTranslation()
   const msg = useMessage()
   const locale = useLocale()
+  const pairNames = usePairNames()
   return (
     <ul className="flex flex-col">
       {items.map((entry) => (
@@ -267,6 +272,9 @@ function LogList({ items }: { items: LogEntry[] }) {
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <StatusBadge tone={toneOf(LOG_LEVEL_TONE, entry.level)}>{tEnum(t, 'logs.level', entry.level)}</StatusBadge>
             <StatusBadge tone="neutral">{tEnum(t, 'logs.category', entry.category)}</StatusBadge>
+            {typeof entry.params.pair_id === 'number' && pairNames.has(entry.params.pair_id) && (
+              <StatusBadge tone="accent">{pairNames.get(entry.params.pair_id)}</StatusBadge>
+            )}
             <time dateTime={entry.ts} className="type-footnote tabular text-text-secondary">
               {formatDateTime(entry.ts, locale, { seconds: true })}
             </time>

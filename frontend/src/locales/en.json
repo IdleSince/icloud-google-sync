@@ -67,10 +67,10 @@
     "password": "Password",
     "submit": "Sign in",
     "pitch": {
-      "title": "A shared iCloud calendar, visible in Google",
-      "body": "This app reads an iCloud calendar that was privately shared with you and copies its events into a separate Google calendar – in one direction only.",
-      "point1": "The iCloud calendar is never modified.",
-      "point2": "Changes go into a separate Google calendar, not your main calendar.",
+      "title": "Shared iCloud calendars, visible in Google",
+      "body": "This app reads iCloud calendars that were privately shared with you and copies their events into a separate Google calendar each – in one direction only.",
+      "point1": "The iCloud calendars are never modified.",
+      "point2": "Changes go into separate Google calendars, not your main calendar.",
       "point3": "Deletion protection prevents many events from disappearing by accident."
     }
   },
@@ -97,12 +97,12 @@
       "title": "Setup",
       "description": "Setup isn’t complete yet. These steps are missing:",
       "icloud": "Add iCloud credentials",
-      "source": "Choose the shared iCloud calendar",
       "google": "Connect to Google",
-      "target": "Choose or create the Google target calendar",
       "enable": "Turn on automatic sync",
       "done": "Done",
-      "open": "Open"
+      "open": "Open",
+      "pairs": "Choose at least one iCloud calendar to sync",
+      "targets": "Give every calendar a Google target calendar"
     },
     "sync": {
       "active": "Sync is on",
@@ -116,20 +116,16 @@
       "never": "Never",
       "notScheduled": "Not scheduled",
       "inProgress": "In progress",
-      "notConfigured": "Choose a source and a target before syncing."
+      "notConfigured": "Choose at least one iCloud calendar with a Google target calendar before syncing."
     },
     "icloud": {
       "title": "iCloud",
       "account": "Apple ID",
-      "source": "Source calendar",
-      "noSource": "Not selected",
       "manage": "Manage iCloud"
     },
     "google": {
       "title": "Google",
       "account": "Account",
-      "target": "Target calendar",
-      "noTarget": "Not selected",
       "manage": "Manage Google"
     },
     "numbers": {
@@ -137,7 +133,8 @@
       "mapped_one": "Synced event",
       "mapped_other": "Synced events",
       "lastRunAt": "Last run: {{date}}",
-      "noRun": "No run yet"
+      "noRun": "No run yet",
+      "lastRunAtPair": "Last run ({{name}}): {{date}}"
     },
     "errors": {
       "title": "Current errors",
@@ -147,7 +144,6 @@
     }
   },
   "calendar": {
-    "owner": "Shared by",
     "ownerValue": "By {{owner}}",
     "eventCount_one": "{{count, number}} event",
     "eventCount_other": "{{count, number}} events",
@@ -164,13 +160,31 @@
     "badge": {
       "shared": "Shared",
       "primary": "Primary",
-      "selected": "Selected",
       "createdByApp": "Created by this app"
     }
   },
+  "pairs": {
+    "title": "Synced calendars",
+    "footer": "Paused calendars are skipped. Their events stay in Google.",
+    "to": "to",
+    "noTarget": "No target calendar",
+    "assignTarget": "Assign target calendar",
+    "pausedBadge": "Paused",
+    "toggle": "Sync “{{name}}” automatically",
+    "resumed": "“{{name}}” is being synced again.",
+    "paused": "“{{name}}” is paused.",
+    "mapped_one": "{{count, number}} synced event",
+    "mapped_other": "{{count, number}} synced events",
+    "lastSuccessAt": "Last successful <time></time>",
+    "neverSucceeded": "Never successful",
+    "syncOne": "Sync “{{name}}” now",
+    "emptyTitle": "No calendar chosen yet",
+    "emptyBody": "Choose under iCloud which calendars should be copied to Google.",
+    "emptyAction": "Choose calendars"
+  },
   "icloud": {
     "title": "iCloud",
-    "description": "Access to iCloud and the shared calendar that gets copied.",
+    "description": "Access to iCloud and the calendars that get copied.",
     "credentials": {
       "title": "Credentials",
       "appleId": "Apple ID",
@@ -197,7 +211,7 @@
       },
       "removeConfirm": {
         "title": "Remove credentials?",
-        "body": "The Apple ID and app-specific password are deleted and the source calendar selection is reset. Nothing will sync until you add new credentials. Events already copied stay in Google."
+        "body": "The Apple ID and app-specific password are deleted. Your calendar choice is kept, but nothing will sync until you add new credentials. Events already copied stay in Google."
       }
     },
     "test": {
@@ -207,10 +221,9 @@
       "calendarHome": "Calendar home found"
     },
     "calendars": {
-      "title": "Source calendar",
+      "title": "iCloud calendars",
       "refresh": "Search again",
-      "footer": "Choose the calendar that was privately shared with you. If it’s missing, run the diagnostics.",
-      "selected": "“{{name}}” is now the source calendar.",
+      "footer": "Every calendar you sync gets a Google calendar of its own. If one is missing from the list, run the diagnostics.",
       "needCredentialsTitle": "Add credentials first",
       "needCredentialsBody": "Once your Apple ID is stored, your calendars appear here.",
       "emptyTitle": "No calendars found",
@@ -218,6 +231,27 @@
       "reason": {
         "noEvents": "Holds no events (e.g. a reminders list)",
         "notReadable": "Can’t be read"
+      },
+      "add": "Sync",
+      "addLabel": "Sync “{{name}}”",
+      "added": "“{{name}}” is now synced to “{{target}}”.",
+      "addedNoTarget": "“{{name}}” is chosen. Assign it a target calendar under “Google”.",
+      "addAll": "Sync all shared calendars",
+      "addAllHint_one": "{{count, number}} shared calendar isn’t synced yet.",
+      "addAllHint_other": "{{count, number}} shared calendars aren’t synced yet.",
+      "addedAll_one": "{{count, number}} calendar is now synced.",
+      "addedAll_other": "{{count, number}} calendars are now synced.",
+      "addAllFailed_one": "{{count, number}} calendar couldn’t be added.",
+      "addAllFailed_other": "{{count, number}} calendars couldn’t be added.",
+      "synced": "Syncing",
+      "stop": "Stop",
+      "stopLabel": "Stop syncing “{{name}}”",
+      "stopped": "“{{name}}” is no longer synced.",
+      "stopConfirm": {
+        "title": "Stop syncing “{{name}}”?",
+        "body": "Changes in this iCloud calendar will no longer be copied to Google.",
+        "nothingDeleted": "Nothing is deleted: the Google calendar and its events stay, the iCloud calendar is left unchanged, and the history stays under “Logs”.",
+        "confirm": "Stop syncing"
       }
     },
     "diagnostics": {
@@ -286,7 +320,7 @@
       "conclusion": {
         "shared_accessible": {
           "title": "The shared calendar is reachable",
-          "body": "iCloud exposes the shared calendar via CalDAV. Choose it under “Source calendar”."
+          "body": "iCloud exposes the shared calendars via CalDAV. You can sync them under “iCloud calendars”."
         },
         "shared_not_listed": {
           "title": "iCloud doesn’t list the shared calendar",
@@ -325,7 +359,7 @@
   },
   "google": {
     "title": "Google",
-    "description": "Connection to Google and the calendar the events are written to.",
+    "description": "Connection to Google and the calendars the events are written to.",
     "oauth": {
       "connected": "Connected to Google."
     },
@@ -345,13 +379,13 @@
       "serverMissingTitle": "Google isn’t set up on the server",
       "disconnectConfirm": {
         "title": "Disconnect from Google?",
-        "body": "The permission is revoked at Google and deleted here. Syncing stops until you connect again. The Google calendar and its events are kept."
+        "body": "The permission is revoked at Google and deleted here. Syncing stops, and after reconnecting you assign the target calendars again. The Google calendars and their events are kept."
       }
     },
     "extended": {
       "title": "Extended access (optional)",
       "body": "Only needed if you want to use an existing calendar of your own as the target instead of a new one.",
-      "point1": "The app may then edit events in your own calendars – it only does so in the selected target calendar.",
+      "point1": "The app may then edit events in your own calendars – it only does so in the assigned target calendars.",
       "point2": "For a new calendar created by the app, the normal connection is enough.",
       "grant": "Grant extended access",
       "footer": "You can revoke access at any time in your Google Account under “Security”."
@@ -361,13 +395,12 @@
       "failed": "Connection to Google failed."
     },
     "calendars": {
-      "title": "Target calendar",
-      "footer": "Events are written only to the selected calendar.",
-      "selected": "“{{name}}” is now the target calendar.",
+      "title": "Your Google calendars",
+      "footer": "Which iCloud calendar writes into which Google calendar is set under “Target calendars”.",
       "needConnectionTitle": "Connect to Google first",
       "needConnectionBody": "Once connected, your Google calendars appear here.",
       "emptyTitle": "No suitable calendar yet",
-      "emptyBody": "Create a calendar of its own for the synced events.",
+      "emptyBody": "Create a calendar of its own for the synced events under “Target calendars”.",
       "role": {
         "owner": "Owner",
         "writer": "Can edit",
@@ -378,17 +411,9 @@
         "primary_locked": "Primary calendar is locked – allow it under “Sync”",
         "not_writable": "No write access",
         "scope_missing": "Requires extended access"
-      }
-    },
-    "create": {
-      "open": "Create new calendar",
-      "title": "Create new calendar",
-      "description": "Adds a separate calendar for the copied events to your Google account.",
-      "name": "Name",
-      "defaultName": "iCloud Sync",
-      "selectAfter": "Use as target calendar",
-      "submit": "Create",
-      "created": "Calendar “{{name}}” created."
+      },
+      "usedBy": "Target for “{{name}}”",
+      "usedByUnknown": "Target of another calendar"
     },
     "primary": {
       "title": "Use the primary calendar as target?",
@@ -398,7 +423,38 @@
     },
     "grouping": {
       "title": "Where does the calendar appear?",
-      "body": "Google groups calendars itself: additional calendars you own appear under “My calendars”. The app never shares the target calendar with anyone."
+      "body": "Google groups calendars itself: additional calendars you own appear under “My calendars”. The app never shares the target calendars with anyone."
+    },
+    "targets": {
+      "title": "Target calendars",
+      "footer": "Every iCloud calendar writes into a Google calendar of its own. A Google calendar always belongs to one iCloud calendar only.",
+      "none": "No target calendar",
+      "create": "Create new",
+      "createLabel": "Create a new target calendar for “{{name}}”",
+      "choose": "Choose existing",
+      "chooseLabel": "Choose an existing target calendar for “{{name}}”",
+      "createMissing": "Create all missing",
+      "createdMissing_one": "{{count, number}} target calendar created.",
+      "createdMissing_other": "{{count, number}} target calendars created.",
+      "createMissingFailed_one": "{{count, number}} target calendar couldn’t be created.",
+      "createMissingFailed_other": "{{count, number}} target calendars couldn’t be created.",
+      "set": "“{{target}}” is now the target for “{{name}}”.",
+      "created": "Created “{{target}}” – “{{name}}” now writes there.",
+      "emptyTitle": "No calendar chosen yet",
+      "emptyBody": "First choose under iCloud which calendars should be copied.",
+      "emptyAction": "Go to iCloud",
+      "current": "Current target",
+      "createDialog": {
+        "title": "Create target calendar",
+        "description": "Adds a new calendar to your Google account for the events from “{{name}}”.",
+        "name": "Name",
+        "submit": "Create"
+      },
+      "chooseDialog": {
+        "title": "Choose target calendar",
+        "description": "Which Google calendar should the events from “{{name}}” be written to?",
+        "submit": "Use calendar"
+      }
     }
   },
   "sync": {
@@ -406,9 +462,10 @@
     "description": "Schedule, time range and safety rules of the synchronization.",
     "run": {
       "title": "Run manually",
-      "footer": "A dry run shows what would change without writing anything to Google.",
+      "footer": "Syncs all active calendars. A dry run shows what would change without writing anything to Google.",
       "started": "Sync started.",
-      "startedDry": "Dry run started."
+      "startedDry": "Dry run started.",
+      "startedPair": "Sync of “{{name}}” started."
     },
     "guard": {
       "title": "Deletion protection was triggered",
@@ -419,7 +476,8 @@
       "confirmBody_one": "{{formatted}} event will be deleted from the Google calendar.",
       "confirmBody_other": "{{formatted}} events will be deleted from the Google calendar.",
       "confirmOnce": "This applies to this one run only. Deletion protection is active again afterwards.",
-      "confirm": "Delete and sync"
+      "confirm": "Delete and sync",
+      "calendar": "Affects the calendar “{{name}}”."
     },
     "latest": {
       "showAll_one": "Show {{count, number}} change",
@@ -539,7 +597,8 @@
       "status": "Status",
       "trigger": "Trigger",
       "duration": "Duration",
-      "changes": "Changes"
+      "changes": "Changes",
+      "calendar": "Calendar"
     },
     "deletions": {
       "summary": "Deletions: {{planned}} planned, {{executed}} carried out.",
@@ -557,7 +616,8 @@
       "untitled": "Untitled",
       "plannedOnly": "Planned only",
       "instance": "Single occurrence of a series"
-    }
+    },
+    "calendar": "Calendar"
   },
   "logs": {
     "title": "Logs",
@@ -695,7 +755,8 @@
     "offset": "Start position",
     "level": "Level",
     "category": "Area",
-    "status": "Status"
+    "status": "Status",
+    "pair_id": "Calendar"
   },
   "messages": {
     "sync": {
@@ -706,7 +767,7 @@
       "source_incomplete": "iCloud returned incomplete data. To be safe, nothing was deleted.",
       "deletion_guard_tripped": "Deletion protection was triggered: more events would have been deleted than allowed.",
       "deletion_dry_run": "Deletions were only planned, not carried out.",
-      "not_configured": "Source or target calendar is missing.",
+      "not_configured": "A Google target calendar is missing. Assign one under “Google”.",
       "cancelled": "Sync was cancelled."
     },
     "auth": {
@@ -722,7 +783,7 @@
     "icloud": {
       "credentials_saved": "iCloud credentials saved.",
       "credentials_removed": "iCloud credentials removed.",
-      "source_selected": "Source calendar selected.",
+      "source_selected": "Calendar chosen for syncing.",
       "diagnosis": {
         "shared_accessible": "Diagnosis: shared calendar reachable.",
         "shared_not_listed": "Diagnosis: no shared calendar found.",
@@ -736,7 +797,12 @@
       "connected": "Google account connected.",
       "disconnected": "Google account disconnected.",
       "calendar_created": "Google calendar created.",
-      "target_selected": "Target calendar selected."
+      "target_selected": "Target calendar assigned."
+    },
+    "pair": {
+      "enabled": "Syncing of a calendar resumed.",
+      "disabled": "Syncing of a calendar paused.",
+      "removed": "A calendar is no longer synced."
     }
   },
   "errors": {
@@ -777,14 +843,19 @@
       "rate_limited": "Google is limiting requests right now. Please try again later.",
       "calendar_not_found": "The Google calendar doesn’t exist or isn’t accessible.",
       "calendar_not_writable": "This Google calendar can’t be written to.",
-      "primary_locked": "The primary calendar is locked. Allow it under “Sync” first."
+      "primary_locked": "The primary calendar is locked. Allow it under “Sync” first.",
+      "target_in_use": "This Google calendar already belongs to another iCloud calendar."
     },
     "sync": {
-      "not_configured": "Source or target calendar is missing.",
+      "not_configured": "A Google target calendar is missing. Assign one under “Google”.",
       "already_running": "A sync is already running."
     },
     "internal": {
       "error": "An internal error occurred. Details are in the server log."
+    },
+    "pair": {
+      "not_found": "This calendar is no longer synced. Please reload the page.",
+      "exists": "This iCloud calendar is already being synced."
     }
   }
 }

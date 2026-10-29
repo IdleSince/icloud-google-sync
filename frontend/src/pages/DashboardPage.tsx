@@ -1,9 +1,9 @@
-import { CheckCircle2, ChevronRight, Circle, CircleAlert, CircleCheck, Pause, RefreshCw } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
+import { ArrowRight, CalendarX2, CheckCircle2, ChevronRight, Circle, CircleAlert, CircleCheck, Pause, RefreshCw } from 'lucide-react'
+import { useId, type ReactNode } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import { useStartRun, useStatus } from '@/api/hooks'
-import type { AppStatus } from '@/api/types'
+import { useSetPairEnabled, useStartRun, useStatus } from '@/api/hooks'
+import type { AppStatus, Pair } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Metric } from '@/components/common/Metric'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -14,12 +14,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { Switch } from '@/components/ui/switch'
 import { useLocale } from '@/hooks/use-locale'
-import { formatDateTime, formatNumber } from '@/lib/format'
+import { displayOwner, formatDateTime, formatNumber } from '@/lib/format'
 import { tEnum, useMessage } from '@/lib/messages'
+import { canSync as anyPairSyncable, everyEnabledPairHasTarget, isSyncable } from '@/lib/pairs'
 import { GOOGLE_TONE, ICLOUD_TONE, RUN_STATUS_TONE, toneOf } from '@/lib/status'
 import { cn } from '@/lib/utils'
-import { displayOwner } from '@/lib/format'
 
 function Panel({ title, description, action, children, className }: { title: ReactNode; description?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
@@ -47,9 +48,9 @@ function SetupChecklist({ status }: { status: AppStatus }) {
   const { t } = useTranslation()
   const steps = [
     { done: status.icloud.configured, label: t('dashboard.setup.icloud'), to: '/icloud' },
-    { done: Boolean(status.source), label: t('dashboard.setup.source'), to: '/icloud' },
+    { done: status.pairs.length > 0, label: t('dashboard.setup.pairs'), to: '/icloud' },
     { done: status.google.connected, label: t('dashboard.setup.google'), to: '/google' },
-    { done: Boolean(status.target), label: t('dashboard.setup.target'), to: '/google' },
+    { done: everyEnabledPairHasTarget(status.pairs), label: t('dashboard.setup.targets'), to: '/google' },
     { done: status.sync.enabled, label: t('dashboard.setup.enable'), to: '/sync' },
   ]
   if (steps.every((s) => s.done)) return null
@@ -78,6 +79,104 @@ function SetupChecklist({ status }: { status: AppStatus }) {
   )
 }
 
+/** One synced calendar. Phone: stacked. Wide: source | target | numbers | controls side by side. */
+function PairRow({ pair, running }: { pair: Pair; running: boolean }) {
+  const { t } = useTranslation()
+  const switchId = useId()
+  const setEnabled = useSetPairEnabled()
+  const startRun = useStartRun()
+  const run = pair.last_run
+  const togglePending = setEnabled.isPending && setEnabled.variables?.pair.id === pair.id
+  const runPending = startRun.isPending && startRun.variables?.pair?.id === pair.id
+  return (
+    <li className="group-row relative grid gap-x-6 gap-y-2 py-3 columns:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,14rem)_auto] columns:items-center">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-medium break-words text-text-primary">{pair.source.name}</span>
+          {pair.source.shared && <StatusBadge tone="accent">{t('calendar.badge.shared')}</StatusBadge>}
+          {!pair.enabled && <StatusBadge tone="neutral">{t('pairs.pausedBadge')}</StatusBadge>}
+        </div>
+        {pair.source.owner && <span className="type-footnote break-all text-text-secondary">{t('calendar.ownerValue', { owner: displayOwner(pair.source.owner) })}</span>}
+      </div>
+
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <ArrowRight className="size-4 shrink-0 text-text-tertiary" aria-hidden />
+        <span className="sr-only">{t('pairs.to')}</span>
+        {pair.target ? (
+          <>
+            <span className="min-w-0 break-words text-text-primary">{pair.target.name}</span>
+            {pair.target.is_primary && <StatusBadge tone="warning">{t('calendar.badge.primary')}</StatusBadge>}
+          </>
+        ) : (
+          <Link to="/google" className="pressable rounded-sm text-warning underline underline-offset-2">
+            {t('pairs.assignTarget')}
+          </Link>
+        )}
+      </div>
+
+      <div className="type-footnote flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-text-secondary">
+        {run && <StatusBadge tone={toneOf(RUN_STATUS_TONE, run.status)}>{tEnum(t, 'runs.status', run.status)}</StatusBadge>}
+        <span className="tabular">{t('pairs.mapped', { count: pair.mapped_events })}</span>
+        <span>
+          {pair.last_success_at ? (
+            <Trans i18nKey="pairs.lastSuccessAt" components={{ time: <RelativeTime value={pair.last_success_at} /> }} />
+          ) : (
+            t('pairs.neverSucceeded')
+          )}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1 columns:justify-end">
+        <Switch
+          id={switchId}
+          checked={pair.enabled}
+          disabled={togglePending}
+          aria-label={t('pairs.toggle', { name: pair.source.name })}
+          onCheckedChange={(enabled) => setEnabled.mutate({ pair, enabled })}
+        />
+        <Button
+          variant="ghost"
+          size="icon-lg"
+          className="text-accent-text pointer-coarse:size-11"
+          disabled={running || startRun.isPending || !isSyncable(pair)}
+          aria-label={t('pairs.syncOne', { name: pair.source.name })}
+          title={t('pairs.syncOne', { name: pair.source.name })}
+          onClick={() => startRun.mutate({ dryRun: false, pair })}
+        >
+          {runPending ? <Spinner /> : <RefreshCw aria-hidden />}
+        </Button>
+      </div>
+    </li>
+  )
+}
+
+function PairsPanel({ status }: { status: AppStatus }) {
+  const { t } = useTranslation()
+  const running = status.sync.running
+  return (
+    <Panel
+      title={t('pairs.title')}
+      description={status.pairs.length > 0 ? t('pairs.footer') : undefined}
+      className="split:col-span-2 columns:col-span-3"
+      action={
+        <Button asChild variant="ghost" size="sm" className="text-accent-text">
+          <Link to="/icloud">{t('pairs.emptyAction')}</Link>
+        </Button>
+      }
+    >
+      {status.pairs.length === 0 ? (
+        <EmptyState icon={<CalendarX2 aria-hidden />} title={t('pairs.emptyTitle')} description={t('pairs.emptyBody')} />
+      ) : (
+        <ul className="flex flex-col" aria-label={t('pairs.title')}>
+          {status.pairs.map((pair) => (
+            <PairRow key={pair.id} pair={pair} running={running} />
+          ))}
+        </ul>
+      )}
+    </Panel>
+  )
+}
+
 function DashboardSkeleton() {
   return (
     <div className="grid gap-5 split:grid-cols-2 columns:grid-cols-3" aria-hidden>
@@ -98,7 +197,8 @@ export function DashboardPage() {
 
   const data = status.data
   const running = data?.sync.running ?? false
-  const canSync = Boolean(data?.source && data?.target)
+  const canSync = anyPairSyncable(data?.pairs ?? [])
+  const pairNames = new Map((data?.pairs ?? []).map((p) => [p.id, p.source.name]))
 
   const syncButton = (
     <Button
@@ -171,6 +271,8 @@ export function DashboardPage() {
               </CardContent>
             </Card>
 
+            <PairsPanel status={data} />
+
             <Panel
               title={t('dashboard.icloud.title')}
               action={
@@ -181,17 +283,6 @@ export function DashboardPage() {
             >
               <dl className="flex flex-col gap-2.5">
                 <KeyValue label={t('dashboard.icloud.account')}>{data.icloud.account_masked ?? t('common.none')}</KeyValue>
-                <KeyValue label={t('dashboard.icloud.source')}>
-                  {data.source ? (
-                    <span className="inline-flex flex-wrap items-center justify-end gap-2">
-                      <span className="font-medium">{data.source.name}</span>
-                      {data.source.shared && <StatusBadge tone="accent">{t('calendar.badge.shared')}</StatusBadge>}
-                    </span>
-                  ) : (
-                    t('dashboard.icloud.noSource')
-                  )}
-                </KeyValue>
-                {data.source?.owner && <KeyValue label={t('calendar.owner')}>{displayOwner(data.source.owner)}</KeyValue>}
                 {data.icloud.last_checked_at && (
                   <KeyValue label={t('dashboard.lastChecked')}>
                     <RelativeTime value={data.icloud.last_checked_at} live={false} />
@@ -214,16 +305,6 @@ export function DashboardPage() {
             >
               <dl className="flex flex-col gap-2.5">
                 <KeyValue label={t('dashboard.google.account')}>{data.google.account ?? t('common.none')}</KeyValue>
-                <KeyValue label={t('dashboard.google.target')}>
-                  {data.target ? (
-                    <span className="inline-flex flex-wrap items-center justify-end gap-2">
-                      <span className="font-medium">{data.target.name}</span>
-                      {data.target.is_primary && <StatusBadge tone="warning">{t('calendar.badge.primary')}</StatusBadge>}
-                    </span>
-                  ) : (
-                    t('dashboard.google.noTarget')
-                  )}
-                </KeyValue>
                 {data.google.last_checked_at && (
                   <KeyValue label={t('dashboard.lastChecked')}>
                     <RelativeTime value={data.google.last_checked_at} live={false} />
@@ -245,7 +326,11 @@ export function DashboardPage() {
                 )
               }
               description={
-                data.last_run ? t('dashboard.numbers.lastRunAt', { date: formatDateTime(data.last_run.started_at, locale) }) : t('dashboard.numbers.noRun')
+                !data.last_run
+                  ? t('dashboard.numbers.noRun')
+                  : data.last_run.calendar_name
+                    ? t('dashboard.numbers.lastRunAtPair', { name: data.last_run.calendar_name, date: formatDateTime(data.last_run.started_at, locale) })
+                    : t('dashboard.numbers.lastRunAt', { date: formatDateTime(data.last_run.started_at, locale) })
               }
               className="split:col-span-2 columns:col-span-1"
             >
@@ -278,6 +363,9 @@ export function DashboardPage() {
                     <li key={entry.id} className="group-row relative flex flex-wrap items-start gap-x-3 gap-y-1 py-2.5 [--row-inset:2rem]">
                       <CircleAlert className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
                       <span className="min-w-0 flex-1 basis-64">{msg(entry.code, entry.params)}</span>
+                      {typeof entry.params.pair_id === 'number' && pairNames.has(entry.params.pair_id) && (
+                        <StatusBadge tone="neutral">{pairNames.get(entry.params.pair_id)}</StatusBadge>
+                      )}
                       <span className="type-footnote shrink-0 text-text-secondary">
                         <RelativeTime value={entry.ts} live={false} />
                       </span>

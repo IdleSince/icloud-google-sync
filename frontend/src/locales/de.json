@@ -67,10 +67,10 @@
     "password": "Passwort",
     "submit": "Anmelden",
     "pitch": {
-      "title": "Ein geteilter iCloud-Kalender, sichtbar in Google",
-      "body": "Diese App liest einen privat mit dir geteilten iCloud-Kalender und überträgt seine Termine in einen eigenen Google-Kalender – nur in diese eine Richtung.",
-      "point1": "Der iCloud-Kalender wird nie verändert.",
-      "point2": "Änderungen landen in einem separaten Google-Kalender, nicht in deinem Hauptkalender.",
+      "title": "Geteilte iCloud-Kalender, sichtbar in Google",
+      "body": "Diese App liest privat mit dir geteilte iCloud-Kalender und überträgt ihre Termine in jeweils einen eigenen Google-Kalender – nur in diese eine Richtung.",
+      "point1": "Die iCloud-Kalender werden nie verändert.",
+      "point2": "Änderungen landen in separaten Google-Kalendern, nicht in deinem Hauptkalender.",
       "point3": "Ein Löschschutz verhindert, dass versehentlich viele Termine verschwinden."
     }
   },
@@ -97,12 +97,12 @@
       "title": "Einrichtung",
       "description": "Noch nicht alles ist eingerichtet. Diese Schritte fehlen:",
       "icloud": "iCloud-Zugangsdaten hinterlegen",
-      "source": "Geteilten iCloud-Kalender auswählen",
       "google": "Mit Google verbinden",
-      "target": "Google-Zielkalender auswählen oder erstellen",
       "enable": "Automatische Synchronisierung aktivieren",
       "done": "Erledigt",
-      "open": "Offen"
+      "open": "Offen",
+      "pairs": "Mindestens einen iCloud-Kalender zum Synchronisieren auswählen",
+      "targets": "Jedem Kalender einen Google-Zielkalender zuordnen"
     },
     "sync": {
       "active": "Synchronisierung aktiv",
@@ -116,20 +116,16 @@
       "never": "Noch nie",
       "notScheduled": "Nicht geplant",
       "inProgress": "Läuft gerade",
-      "notConfigured": "Quelle und Ziel müssen ausgewählt sein, bevor synchronisiert werden kann."
+      "notConfigured": "Wähle mindestens einen iCloud-Kalender mit Google-Zielkalender aus, bevor synchronisiert werden kann."
     },
     "icloud": {
       "title": "iCloud",
       "account": "Apple-ID",
-      "source": "Quellkalender",
-      "noSource": "Nicht ausgewählt",
       "manage": "iCloud verwalten"
     },
     "google": {
       "title": "Google",
       "account": "Konto",
-      "target": "Zielkalender",
-      "noTarget": "Nicht ausgewählt",
       "manage": "Google verwalten"
     },
     "numbers": {
@@ -137,7 +133,8 @@
       "mapped_one": "Synchronisierter Termin",
       "mapped_other": "Synchronisierte Termine",
       "lastRunAt": "Letzter Lauf: {{date}}",
-      "noRun": "Noch kein Lauf"
+      "noRun": "Noch kein Lauf",
+      "lastRunAtPair": "Letzter Lauf ({{name}}): {{date}}"
     },
     "errors": {
       "title": "Aktuelle Fehler",
@@ -147,7 +144,6 @@
     }
   },
   "calendar": {
-    "owner": "Geteilt von",
     "ownerValue": "Von {{owner}}",
     "eventCount_one": "{{count, number}} Termin",
     "eventCount_other": "{{count, number}} Termine",
@@ -164,13 +160,31 @@
     "badge": {
       "shared": "Geteilt",
       "primary": "Hauptkalender",
-      "selected": "Ausgewählt",
       "createdByApp": "Von dieser App erstellt"
     }
   },
+  "pairs": {
+    "title": "Synchronisierte Kalender",
+    "footer": "Pausierte Kalender werden übersprungen. Ihre Termine bleiben in Google erhalten.",
+    "to": "nach",
+    "noTarget": "Kein Zielkalender",
+    "assignTarget": "Zielkalender zuordnen",
+    "pausedBadge": "Pausiert",
+    "toggle": "„{{name}}“ automatisch synchronisieren",
+    "resumed": "„{{name}}“ wird wieder synchronisiert.",
+    "paused": "„{{name}}“ ist pausiert.",
+    "mapped_one": "{{count, number}} synchronisierter Termin",
+    "mapped_other": "{{count, number}} synchronisierte Termine",
+    "lastSuccessAt": "Zuletzt erfolgreich <time></time>",
+    "neverSucceeded": "Noch nie erfolgreich",
+    "syncOne": "„{{name}}“ jetzt synchronisieren",
+    "emptyTitle": "Noch kein Kalender ausgewählt",
+    "emptyBody": "Wähle unter iCloud aus, welche Kalender nach Google übertragen werden sollen.",
+    "emptyAction": "Kalender auswählen"
+  },
   "icloud": {
     "title": "iCloud",
-    "description": "Zugang zu iCloud und Auswahl des geteilten Kalenders, der übertragen wird.",
+    "description": "Zugang zu iCloud und Auswahl der Kalender, die übertragen werden.",
     "credentials": {
       "title": "Zugangsdaten",
       "appleId": "Apple-ID",
@@ -197,7 +211,7 @@
       },
       "removeConfirm": {
         "title": "Zugangsdaten entfernen?",
-        "body": "Die Apple-ID und das app-spezifische Passwort werden gelöscht, die Auswahl des Quellkalenders wird zurückgesetzt. Bis du neue Zugangsdaten einträgst, wird nichts mehr synchronisiert. Bereits übertragene Termine bleiben in Google erhalten."
+        "body": "Die Apple-ID und das app-spezifische Passwort werden gelöscht. Deine Kalenderauswahl bleibt erhalten, aber bis du neue Zugangsdaten einträgst, wird nichts mehr synchronisiert. Bereits übertragene Termine bleiben in Google erhalten."
       }
     },
     "test": {
@@ -207,10 +221,9 @@
       "calendarHome": "Kalenderverzeichnis gefunden"
     },
     "calendars": {
-      "title": "Quellkalender",
+      "title": "iCloud-Kalender",
       "refresh": "Neu suchen",
-      "footer": "Wähle den privat mit dir geteilten Kalender. Fehlt er in der Liste, hilft die Diagnose weiter.",
-      "selected": "„{{name}}“ ist jetzt der Quellkalender.",
+      "footer": "Jeder Kalender, den du synchronisierst, bekommt in Google einen eigenen Kalender. Fehlt einer in der Liste, hilft die Diagnose weiter.",
       "needCredentialsTitle": "Zuerst Zugangsdaten eintragen",
       "needCredentialsBody": "Sobald die Apple-ID hinterlegt ist, werden hier deine Kalender angezeigt.",
       "emptyTitle": "Keine Kalender gefunden",
@@ -218,6 +231,27 @@
       "reason": {
         "noEvents": "Enthält keine Termine (z. B. eine Erinnerungsliste)",
         "notReadable": "Kann nicht gelesen werden"
+      },
+      "add": "Synchronisieren",
+      "addLabel": "„{{name}}“ synchronisieren",
+      "added": "„{{name}}“ wird jetzt nach „{{target}}“ synchronisiert.",
+      "addedNoTarget": "„{{name}}“ ist ausgewählt. Ordne ihm unter „Google“ noch einen Zielkalender zu.",
+      "addAll": "Alle geteilten Kalender synchronisieren",
+      "addAllHint_one": "{{count, number}} geteilter Kalender wird noch nicht synchronisiert.",
+      "addAllHint_other": "{{count, number}} geteilte Kalender werden noch nicht synchronisiert.",
+      "addedAll_one": "{{count, number}} Kalender wird jetzt synchronisiert.",
+      "addedAll_other": "{{count, number}} Kalender werden jetzt synchronisiert.",
+      "addAllFailed_one": "{{count, number}} Kalender konnte nicht hinzugefügt werden.",
+      "addAllFailed_other": "{{count, number}} Kalender konnten nicht hinzugefügt werden.",
+      "synced": "Wird synchronisiert",
+      "stop": "Beenden",
+      "stopLabel": "„{{name}}“ nicht mehr synchronisieren",
+      "stopped": "„{{name}}“ wird nicht mehr synchronisiert.",
+      "stopConfirm": {
+        "title": "„{{name}}“ nicht mehr synchronisieren?",
+        "body": "Änderungen aus diesem iCloud-Kalender werden ab jetzt nicht mehr nach Google übertragen.",
+        "nothingDeleted": "Es wird nichts gelöscht: Der Google-Kalender und seine Termine bleiben erhalten, der iCloud-Kalender bleibt unverändert, und der Verlauf bleibt unter „Protokolle“.",
+        "confirm": "Nicht mehr synchronisieren"
       }
     },
     "diagnostics": {
@@ -286,7 +320,7 @@
       "conclusion": {
         "shared_accessible": {
           "title": "Der geteilte Kalender ist erreichbar",
-          "body": "iCloud stellt den geteilten Kalender über CalDAV bereit. Wähle ihn unter „Quellkalender“ aus."
+          "body": "iCloud stellt die geteilten Kalender über CalDAV bereit. Du kannst sie unter „iCloud-Kalender“ synchronisieren."
         },
         "shared_not_listed": {
           "title": "iCloud zeigt den geteilten Kalender nicht an",
@@ -325,7 +359,7 @@
   },
   "google": {
     "title": "Google",
-    "description": "Verbindung zu Google und Auswahl des Kalenders, in den die Termine geschrieben werden.",
+    "description": "Verbindung zu Google und die Kalender, in die die Termine geschrieben werden.",
     "oauth": {
       "connected": "Mit Google verbunden."
     },
@@ -345,13 +379,13 @@
       "serverMissingTitle": "Google ist auf dem Server nicht eingerichtet",
       "disconnectConfirm": {
         "title": "Verbindung zu Google trennen?",
-        "body": "Die Berechtigung wird bei Google widerrufen und hier gelöscht. Die Synchronisierung stoppt, bis du dich erneut verbindest. Der Google-Kalender und seine Termine bleiben erhalten."
+        "body": "Die Berechtigung wird bei Google widerrufen und hier gelöscht. Die Synchronisierung stoppt, und nach dem erneuten Verbinden ordnest du die Zielkalender neu zu. Die Google-Kalender und ihre Termine bleiben erhalten."
       }
     },
     "extended": {
       "title": "Erweiterter Zugriff (optional)",
       "body": "Nur nötig, wenn du statt eines neuen Kalenders einen bereits vorhandenen eigenen Google-Kalender als Ziel verwenden möchtest.",
-      "point1": "Die App darf dann Termine in deinen eigenen Kalendern bearbeiten – sie tut es nur im ausgewählten Zielkalender.",
+      "point1": "Die App darf dann Termine in deinen eigenen Kalendern bearbeiten – sie tut es nur in den zugeordneten Zielkalendern.",
       "point2": "Für einen neuen, von der App erstellten Kalender reicht die normale Verbindung.",
       "grant": "Erweiterten Zugriff erteilen",
       "footer": "Du kannst den Zugriff jederzeit in deinem Google-Konto unter „Sicherheit“ widerrufen."
@@ -361,13 +395,12 @@
       "failed": "Verbindung zu Google fehlgeschlagen."
     },
     "calendars": {
-      "title": "Zielkalender",
-      "footer": "Die Termine werden nur in den ausgewählten Kalender geschrieben.",
-      "selected": "„{{name}}“ ist jetzt der Zielkalender.",
+      "title": "Deine Google-Kalender",
+      "footer": "Welcher iCloud-Kalender in welchen Google-Kalender schreibt, legst du unter „Zielkalender“ fest.",
       "needConnectionTitle": "Zuerst mit Google verbinden",
       "needConnectionBody": "Nach der Verbindung erscheinen hier deine Google-Kalender.",
       "emptyTitle": "Noch kein passender Kalender",
-      "emptyBody": "Erstelle einen eigenen Kalender für die synchronisierten Termine.",
+      "emptyBody": "Lege unter „Zielkalender“ einen eigenen Kalender für die synchronisierten Termine an.",
       "role": {
         "owner": "Eigentümer",
         "writer": "Bearbeiten",
@@ -378,17 +411,9 @@
         "primary_locked": "Hauptkalender ist gesperrt – unter „Sync“ freigeben",
         "not_writable": "Kein Schreibzugriff",
         "scope_missing": "Erfordert erweiterten Zugriff"
-      }
-    },
-    "create": {
-      "open": "Neuen Kalender erstellen",
-      "title": "Neuen Kalender erstellen",
-      "description": "Legt in deinem Google-Konto einen eigenen Kalender für die übertragenen Termine an.",
-      "name": "Name",
-      "defaultName": "iCloud Sync",
-      "selectAfter": "Als Zielkalender verwenden",
-      "submit": "Erstellen",
-      "created": "Kalender „{{name}}“ erstellt."
+      },
+      "usedBy": "Ziel für „{{name}}“",
+      "usedByUnknown": "Ziel eines anderen Kalenders"
     },
     "primary": {
       "title": "Hauptkalender als Ziel verwenden?",
@@ -398,7 +423,38 @@
     },
     "grouping": {
       "title": "Wo erscheint der Kalender?",
-      "body": "Google sortiert Kalender selbst: Eigene zusätzliche Kalender stehen unter „Meine Kalender“. Der Zielkalender wird von der App nie mit anderen geteilt."
+      "body": "Google sortiert Kalender selbst: Eigene zusätzliche Kalender stehen unter „Meine Kalender“. Die Zielkalender werden von der App nie mit anderen geteilt."
+    },
+    "targets": {
+      "title": "Zielkalender",
+      "footer": "Jeder iCloud-Kalender schreibt in seinen eigenen Google-Kalender. Ein Google-Kalender gehört immer nur zu einem iCloud-Kalender.",
+      "none": "Kein Zielkalender",
+      "create": "Neu anlegen",
+      "createLabel": "Zielkalender für „{{name}}“ neu anlegen",
+      "choose": "Vorhandenen wählen",
+      "chooseLabel": "Vorhandenen Zielkalender für „{{name}}“ wählen",
+      "createMissing": "Für alle fehlenden anlegen",
+      "createdMissing_one": "{{count, number}} Zielkalender angelegt.",
+      "createdMissing_other": "{{count, number}} Zielkalender angelegt.",
+      "createMissingFailed_one": "{{count, number}} Zielkalender konnte nicht angelegt werden.",
+      "createMissingFailed_other": "{{count, number}} Zielkalender konnten nicht angelegt werden.",
+      "set": "„{{target}}“ ist jetzt das Ziel für „{{name}}“.",
+      "created": "„{{target}}“ angelegt – „{{name}}“ schreibt jetzt dorthin.",
+      "emptyTitle": "Noch kein Kalender ausgewählt",
+      "emptyBody": "Wähle zuerst unter iCloud aus, welche Kalender übertragen werden sollen.",
+      "emptyAction": "Zu iCloud",
+      "current": "Aktuelles Ziel",
+      "createDialog": {
+        "title": "Zielkalender anlegen",
+        "description": "Legt in deinem Google-Konto einen neuen Kalender für die Termine aus „{{name}}“ an.",
+        "name": "Name",
+        "submit": "Anlegen"
+      },
+      "chooseDialog": {
+        "title": "Zielkalender wählen",
+        "description": "In welchen Google-Kalender sollen die Termine aus „{{name}}“ geschrieben werden?",
+        "submit": "Übernehmen"
+      }
     }
   },
   "sync": {
@@ -406,9 +462,10 @@
     "description": "Zeitplan, Zeitraum und Schutzregeln der Synchronisierung.",
     "run": {
       "title": "Manuell ausführen",
-      "footer": "Ein Dry-Run zeigt, was sich ändern würde, ohne etwas in Google zu schreiben.",
+      "footer": "Synchronisiert alle aktiven Kalender. Ein Dry-Run zeigt, was sich ändern würde, ohne etwas in Google zu schreiben.",
       "started": "Synchronisierung gestartet.",
-      "startedDry": "Dry-Run gestartet."
+      "startedDry": "Dry-Run gestartet.",
+      "startedPair": "Synchronisierung von „{{name}}“ gestartet."
     },
     "guard": {
       "title": "Löschschutz hat ausgelöst",
@@ -419,7 +476,8 @@
       "confirmBody_one": "{{formatted}} Termin wird im Google-Kalender gelöscht.",
       "confirmBody_other": "{{formatted}} Termine werden im Google-Kalender gelöscht.",
       "confirmOnce": "Die Freigabe gilt nur für diesen einen Lauf. Danach greift der Löschschutz wieder.",
-      "confirm": "Löschen und synchronisieren"
+      "confirm": "Löschen und synchronisieren",
+      "calendar": "Betrifft den Kalender „{{name}}“."
     },
     "latest": {
       "showAll_one": "{{count, number}} Änderung anzeigen",
@@ -539,7 +597,8 @@
       "status": "Status",
       "trigger": "Auslöser",
       "duration": "Dauer",
-      "changes": "Änderungen"
+      "changes": "Änderungen",
+      "calendar": "Kalender"
     },
     "deletions": {
       "summary": "Löschungen: {{planned}} geplant, {{executed}} ausgeführt.",
@@ -557,7 +616,8 @@
       "untitled": "Ohne Titel",
       "plannedOnly": "Nur geplant",
       "instance": "Einzelner Termin einer Serie"
-    }
+    },
+    "calendar": "Kalender"
   },
   "logs": {
     "title": "Protokolle",
@@ -695,7 +755,8 @@
     "offset": "Startposition",
     "level": "Stufe",
     "category": "Bereich",
-    "status": "Status"
+    "status": "Status",
+    "pair_id": "Kalender"
   },
   "messages": {
     "sync": {
@@ -706,7 +767,7 @@
       "source_incomplete": "iCloud hat unvollständige Daten geliefert. Zur Sicherheit wurde nichts gelöscht.",
       "deletion_guard_tripped": "Löschschutz hat ausgelöst: Es wären mehr Termine gelöscht worden als erlaubt.",
       "deletion_dry_run": "Löschungen wurden nur geplant, nicht ausgeführt.",
-      "not_configured": "Quell- oder Zielkalender fehlt.",
+      "not_configured": "Es fehlt ein Google-Zielkalender. Ordne ihn unter „Google“ zu.",
       "cancelled": "Synchronisierung abgebrochen."
     },
     "auth": {
@@ -722,7 +783,7 @@
     "icloud": {
       "credentials_saved": "iCloud-Zugangsdaten gespeichert.",
       "credentials_removed": "iCloud-Zugangsdaten entfernt.",
-      "source_selected": "Quellkalender ausgewählt.",
+      "source_selected": "Kalender zur Synchronisierung ausgewählt.",
       "diagnosis": {
         "shared_accessible": "Diagnose: Geteilter Kalender erreichbar.",
         "shared_not_listed": "Diagnose: Kein geteilter Kalender gefunden.",
@@ -736,7 +797,12 @@
       "connected": "Google-Konto verbunden.",
       "disconnected": "Google-Konto getrennt.",
       "calendar_created": "Google-Kalender erstellt.",
-      "target_selected": "Zielkalender ausgewählt."
+      "target_selected": "Zielkalender zugeordnet."
+    },
+    "pair": {
+      "enabled": "Synchronisierung eines Kalenders fortgesetzt.",
+      "disabled": "Synchronisierung eines Kalenders pausiert.",
+      "removed": "Ein Kalender wird nicht mehr synchronisiert."
     }
   },
   "errors": {
@@ -777,14 +843,19 @@
       "rate_limited": "Google begrenzt gerade die Anfragen. Bitte später erneut versuchen.",
       "calendar_not_found": "Der Google-Kalender existiert nicht oder ist nicht zugänglich.",
       "calendar_not_writable": "In diesen Google-Kalender darf nicht geschrieben werden.",
-      "primary_locked": "Der Hauptkalender ist gesperrt. Erlaube ihn zuerst unter „Sync“."
+      "primary_locked": "Der Hauptkalender ist gesperrt. Erlaube ihn zuerst unter „Sync“.",
+      "target_in_use": "Dieser Google-Kalender gehört schon zu einem anderen iCloud-Kalender."
     },
     "sync": {
-      "not_configured": "Quell- oder Zielkalender fehlt.",
+      "not_configured": "Es fehlt ein Google-Zielkalender. Ordne ihn unter „Google“ zu.",
       "already_running": "Es läuft bereits eine Synchronisierung."
     },
     "internal": {
       "error": "Ein interner Fehler ist aufgetreten. Details stehen im Serverprotokoll."
+    },
+    "pair": {
+      "not_found": "Dieser Kalender wird nicht mehr synchronisiert. Bitte lade die Seite neu.",
+      "exists": "Dieser iCloud-Kalender wird bereits synchronisiert."
     }
   }
 }

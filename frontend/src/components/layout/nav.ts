@@ -1,5 +1,6 @@
 import { CalendarDays, Cloud, LayoutGrid, RefreshCw, ScrollText, type LucideIcon } from 'lucide-react'
 import type { AppStatus } from '@/api/types'
+import { everyEnabledPairHasTarget, guardTrippedPairs } from '@/lib/pairs'
 
 export interface NavItem {
   to: string
@@ -19,7 +20,7 @@ export const NAV_ITEMS: NavItem[] = [
     key: 'icloud',
     icon: Cloud,
     tile: 'var(--color-tile-icloud)',
-    attention: (s) => !s.icloud.configured || s.icloud.status === 'error' || !s.source,
+    attention: (s) => !s.icloud.configured || s.icloud.status === 'error' || s.pairs.length === 0,
   },
   {
     to: '/google',
@@ -27,20 +28,24 @@ export const NAV_ITEMS: NavItem[] = [
     icon: CalendarDays,
     tile: 'var(--color-tile-google)',
     attention: (s) =>
-      s.google.configured_on_server && (!s.google.connected || s.google.status === 'error' || s.google.status === 'reauth_required' || !s.target),
+      s.google.configured_on_server &&
+      (!s.google.connected ||
+        s.google.status === 'error' ||
+        s.google.status === 'reauth_required' ||
+        (s.pairs.length > 0 && !everyEnabledPairHasTarget(s.pairs))),
   },
   {
     to: '/sync',
     key: 'sync',
     icon: RefreshCw,
     tile: 'var(--color-tile-sync)',
-    attention: (s) => s.last_run?.message?.code === 'sync.deletion_guard_tripped',
+    attention: (s) => guardTrippedPairs(s.pairs).length > 0,
   },
   {
     to: '/logs',
     key: 'logs',
     icon: ScrollText,
     tile: 'var(--color-tile-logs)',
-    attention: (s) => s.last_run?.status === 'failed',
+    attention: (s) => s.pairs.some((p) => p.last_run?.status === 'failed'),
   },
 ]

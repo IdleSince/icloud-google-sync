@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  CalendarMinus,
+  CalendarPlus,
   CalendarX2,
   CheckCircle2,
   ChevronDown,
@@ -10,6 +12,7 @@ import {
   KeyRound,
   Lock,
   PlugZap,
+  RefreshCw,
   Search,
   Stethoscope,
   Trash2,
@@ -21,8 +24,8 @@ import { Trans, useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { api, qk } from '@/api/endpoints'
-import { useStatus } from '@/api/hooks'
-import type { DiagnosticStep, Diagnostics, DiscoveredCalendar, ICloudTestResult } from '@/api/types'
+import { useInvalidatePairs, useStatus } from '@/api/hooks'
+import type { DiagnosticStep, Diagnostics, DiscoveredCalendar, ICloudTestResult, Pair } from '@/api/types'
 import { ColorDot } from '@/components/common/ColorDot'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -36,12 +39,12 @@ import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { useLocale } from '@/hooks/use-locale'
 import { displayOwner, formatDateTime } from '@/lib/format'
 import { tEnum, useMessage } from '@/lib/messages'
+import { sharedCalendarsToAdd } from '@/lib/pairs'
 import { ICLOUD_TONE, toneOf } from '@/lib/status'
 import { cn } from '@/lib/utils'
 
@@ -300,28 +303,40 @@ function disabledReason(cal: DiscoveredCalendar, t: (k: string) => string, msg: 
   return null
 }
 
-function CalendarRow({ cal, disabled }: { cal: DiscoveredCalendar; disabled: string | null }) {
+interface CalendarRowProps {
+  cal: DiscoveredCalendar
+  pair: Pair | undefined
+  disabled: string | null
+  busy: boolean
+  pending: boolean
+  onAdd: () => void
+  onStop: () => void
+}
+
+function CalendarRow({ cal, pair, disabled, busy, pending, onAdd, onStop }: CalendarRowProps) {
   const { t } = useTranslation()
   const msg = useMessage()
-  const inputId = useId()
+  const metaId = useId()
   const ownershipTone: Tone = cal.ownership === 'shared' ? 'accent' : 'neutral'
+  const synced = cal.pair_id !== null
   return (
-    <label
-      htmlFor={inputId}
-      className={cn(
-        'group-row pressable relative flex min-h-(--size-row-min) items-start gap-3 px-4 py-3 [--row-inset:2.75rem]',
-        disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-fill',
-      )}
-    >
-      <RadioGroupItem id={inputId} value={cal.url} disabled={Boolean(disabled)} className="mt-1" aria-describedby={`${inputId}-meta`} />
-      <div className={cn('flex min-w-0 flex-1 flex-col gap-1', disabled && 'opacity-70')}>
+    // Label block and action share one line; the action wraps below on narrow phones.
+    <li className="group-row relative flex min-h-(--size-row-min) flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+      <div className={cn('flex min-w-[min(14rem,100%)] flex-1 flex-col gap-1', disabled && 'opacity-70')}>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <ColorDot color={cal.color} />
-          <span className="font-medium text-text-primary">{cal.name}</span>
+          <span className="font-medium break-words text-text-primary">{cal.name}</span>
           <StatusBadge tone={ownershipTone}>{tEnum(t, 'calendar.ownership', cal.ownership)}</StatusBadge>
-          {cal.selected && <StatusBadge tone="success">{t('calendar.badge.selected')}</StatusBadge>}
+          {synced &&
+            (pair && !pair.enabled ? (
+              <StatusBadge tone="neutral">{t('pairs.pausedBadge')}</StatusBadge>
+            ) : (
+              <StatusBadge tone="success" icon={<RefreshCw aria-hidden />}>
+                {t('icloud.calendars.synced')}
+              </StatusBadge>
+            ))}
         </div>
-        <div id={`${inputId}-meta`} className="type-footnote flex flex-wrap gap-x-3 gap-y-0.5 text-text-secondary">
+        <div id={metaId} className="type-footnote flex flex-wrap gap-x-3 gap-y-0.5 text-text-secondary">
           {cal.owner && <span>{t('calendar.ownerValue', { owner: displayOwner(cal.owner) })}</span>}
           <span>{tEnum(t, 'calendar.access', cal.access)}</span>
           {cal.event_count !== null && <span>{t('calendar.eventCount', { count: cal.event_count })}</span>}
@@ -334,24 +349,88 @@ function CalendarRow({ cal, disabled }: { cal: DiscoveredCalendar; disabled: str
           {!disabled && cal.error && <span className="text-warning">{msg(cal.error)}</span>}
         </div>
       </div>
-    </label>
+      {synced ? (
+        <Button
+          variant="ghost"
+          className="text-text-secondary pointer-coarse:h-11"
+          disabled={busy}
+          aria-label={t('icloud.calendars.stopLabel', { name: cal.name })}
+          onClick={onStop}
+        >
+          {pending ? <Spinner /> : <CalendarMinus aria-hidden />}
+          {t('icloud.calendars.stop')}
+        </Button>
+      ) : (
+        !disabled && (
+          <Button
+            variant="outline"
+            className="pointer-coarse:h-11"
+            disabled={busy}
+            aria-label={t('icloud.calendars.addLabel', { name: cal.name })}
+            aria-describedby={metaId}
+            onClick={onAdd}
+          >
+            {pending ? <Spinner /> : <CalendarPlus aria-hidden />}
+            {t('icloud.calendars.add')}
+          </Button>
+        )
+      )}
+    </li>
   )
 }
 
 function CalendarsSection({ configured }: { configured: boolean }) {
   const { t } = useTranslation()
   const msg = useMessage()
-  const qc = useQueryClient()
+  const status = useStatus()
+  const invalidate = useInvalidatePairs()
   const calendars = useQuery({ queryKey: qk.icloudCalendars, queryFn: api.icloud.calendars, enabled: configured })
-  const select = useMutation({
-    mutationFn: (url: string) => api.icloud.setSource(url),
-    onSuccess: (r) => {
-      toast.success(t('icloud.calendars.selected', { name: r.source.name }))
-      void qc.invalidateQueries({ queryKey: qk.icloudCalendars })
-      void qc.invalidateQueries({ queryKey: qk.status })
+  const [stopCandidate, setStopCandidate] = useState<{ pairId: number; name: string } | null>(null)
+
+  const add = useMutation({
+    mutationFn: (cal: DiscoveredCalendar) => api.pairs.create(cal.url),
+    onSuccess: ({ pair }) => {
+      if (pair.target) toast.success(t('icloud.calendars.added', { name: pair.source.name, target: pair.target.name }))
+      else toast.success(t('icloud.calendars.addedNoTarget', { name: pair.source.name }))
     },
     onError: (e) => toast.error(msg(e)),
+    onSettled: invalidate,
   })
+
+  // One request per calendar, one after the other: the backend creates a Google calendar
+  // for each, and sequential calls stay well inside Google's rate limit.
+  const addAll = useMutation({
+    mutationFn: async (list: DiscoveredCalendar[]) => {
+      let added = 0
+      const errors: unknown[] = []
+      for (const cal of list) {
+        try {
+          await api.pairs.create(cal.url)
+          added += 1
+        } catch (e) {
+          errors.push(e)
+        }
+      }
+      return { added, errors }
+    },
+    onSuccess: ({ added, errors }) => {
+      if (errors.length === 0) toast.success(t('icloud.calendars.addedAll', { count: added }))
+      else if (added > 0)
+        toast.warning(t('icloud.calendars.addedAll', { count: added }), { description: t('icloud.calendars.addAllFailed', { count: errors.length }) })
+      else toast.error(t('icloud.calendars.addAllFailed', { count: errors.length }), { description: msg(errors[0]) })
+    },
+    onSettled: invalidate,
+  })
+
+  const remove = useMutation({
+    mutationFn: (vars: { pairId: number; name: string }) => api.pairs.remove(vars.pairId),
+    onSuccess: (_r, vars) => toast.success(t('icloud.calendars.stopped', { name: vars.name })),
+    onError: (e) => toast.error(msg(e)),
+    onSettled: invalidate,
+  })
+
+  const busy = add.isPending || addAll.isPending || remove.isPending
+  const pairsById = new Map((status.data?.pairs ?? []).map((p) => [p.id, p]))
 
   const refresh = (
     <Button
@@ -387,25 +466,55 @@ function CalendarsSection({ configured }: { configured: boolean }) {
     body = <EmptyState icon={<CalendarX2 aria-hidden />} title={t('icloud.calendars.emptyTitle')} description={t('icloud.calendars.emptyBody')} />
   } else {
     const list = calendars.data.calendars
-    const selected = list.find((c) => c.selected)?.url ?? ''
+    const toAdd = sharedCalendarsToAdd(list)
     body = (
-      <RadioGroup
-        value={selected}
-        onValueChange={(url) => select.mutate(url)}
-        aria-label={t('icloud.calendars.title')}
-        className="gap-0"
-        disabled={select.isPending}
-      >
-        {list.map((cal) => (
-          <CalendarRow key={cal.id} cal={cal} disabled={disabledReason(cal, t, msg)} />
-        ))}
-      </RadioGroup>
+      <>
+        {toAdd.length > 0 && (
+          <div className="group-row relative flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
+            <p className="min-w-[min(14rem,100%)] flex-1 text-text-primary">{t('icloud.calendars.addAllHint', { count: toAdd.length })}</p>
+            <Button className="pointer-coarse:h-11" disabled={busy} onClick={() => addAll.mutate(toAdd)}>
+              {addAll.isPending ? <Spinner /> : <CalendarPlus aria-hidden />}
+              {t('icloud.calendars.addAll')}
+            </Button>
+          </div>
+        )}
+        <ul aria-label={t('icloud.calendars.title')} aria-busy={busy || undefined}>
+          {list.map((cal) => (
+            <CalendarRow
+              key={cal.id}
+              cal={cal}
+              pair={cal.pair_id !== null ? pairsById.get(cal.pair_id) : undefined}
+              disabled={disabledReason(cal, t, msg)}
+              busy={busy}
+              pending={(add.isPending && add.variables?.url === cal.url) || (remove.isPending && remove.variables?.pairId === cal.pair_id)}
+              onAdd={() => add.mutate(cal)}
+              onStop={() => cal.pair_id !== null && setStopCandidate({ pairId: cal.pair_id, name: cal.name })}
+            />
+          ))}
+        </ul>
+      </>
     )
   }
 
   return (
     <Group id="icloud-calendars" title={t('icloud.calendars.title')} action={refresh} footer={t('icloud.calendars.footer')}>
       {body}
+      <ConfirmDialog
+        open={stopCandidate !== null}
+        onOpenChange={(v) => !v && setStopCandidate(null)}
+        title={t('icloud.calendars.stopConfirm.title', { name: stopCandidate?.name ?? '' })}
+        description={
+          <>
+            <p>{t('icloud.calendars.stopConfirm.body')}</p>
+            <p>{t('icloud.calendars.stopConfirm.nothingDeleted')}</p>
+          </>
+        }
+        confirmLabel={t('icloud.calendars.stopConfirm.confirm')}
+        onConfirm={() => {
+          if (stopCandidate) remove.mutate(stopCandidate)
+          setStopCandidate(null)
+        }}
+      />
     </Group>
   )
 }

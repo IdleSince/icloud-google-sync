@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -16,9 +17,9 @@ PASSWORD = "correct horse battery staple"
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client() -> Iterator[TestClient]:
     with TestClient(create_app(), base_url="http://testserver") as c:
-        yield c  # type: ignore[misc]
+        yield c
 
 
 def login(c: TestClient) -> str:
@@ -36,10 +37,14 @@ ADMIN_ENDPOINTS = [
     ("GET", "/api/icloud/calendars"),
     ("GET", "/api/icloud/diagnostics"),
     ("PUT", "/api/icloud/credentials"),
-    ("PUT", "/api/icloud/source"),
     ("POST", "/api/google/oauth/start"),
     ("GET", "/api/google/calendars"),
-    ("PUT", "/api/google/target"),
+    ("GET", "/api/pairs"),
+    ("POST", "/api/pairs"),
+    ("PATCH", "/api/pairs/1"),
+    ("DELETE", "/api/pairs/1"),
+    ("PUT", "/api/pairs/1/target"),
+    ("POST", "/api/pairs/1/target"),
     ("DELETE", "/api/google/connection"),
     ("GET", "/api/sync/settings"),
     ("PUT", "/api/sync/settings"),
@@ -124,9 +129,16 @@ def test_icloud_setup_flow_and_secret_never_returned(client: TestClient, icloud:
     cals = client.get("/api/icloud/calendars").json()["calendars"]
     shared = next(c for c in cals if c["ownership"] == "shared")
     assert "raw" not in shared and "ctag" not in shared
-    r = client.put("/api/icloud/source", json={"calendar_url": shared["url"]}, headers=h)
-    assert r.json()["source"]["shared"] is True and r.json()["source"]["id"] == shared["id"]
-    assert client.put("/api/icloud/source", json={"calendar_url": "https://p42-caldav.icloud.com/x/y/"}, headers=h).status_code == 404
+    r = client.post("/api/pairs", json={"calendar_url": shared["url"]}, headers=h)
+    assert r.status_code == 201, r.text
+    pair = r.json()["pair"]
+    assert pair["source"]["shared"] is True and pair["source"]["id"] == shared["id"]
+    assert pair["target"] is None, "Google is not connected yet -> no target created"
+    assert pair["suggested_target_name"] == "Familie (Anna Beispiel)"
+    assert client.post("/api/pairs", json={"calendar_url": shared["url"]}, headers=h).json()["error"]["code"] == "pair.exists"
+    assert client.post("/api/pairs", json={"calendar_url": "https://p42-caldav.icloud.com/x/y/"}, headers=h).status_code == 404
+    listed = {c["id"]: c for c in client.get("/api/icloud/calendars").json()["calendars"]}
+    assert listed[shared["id"]]["pair_id"] == pair["id"]
     diag = client.get("/api/icloud/diagnostics").json()
     assert diag["conclusion"] == "shared_accessible"
     status = client.get("/api/status").text
@@ -160,14 +172,17 @@ def test_google_calendar_selection_and_primary_lock(client: TestClient, configur
     cals = {c["id"]: c for c in client.get("/api/google/calendars").json()["calendars"]}
     assert cals["me@example.com"]["lock_reason"] == "primary_locked"
     assert cals["readonly@group.calendar.google.com"]["lock_reason"] == "not_writable"
-    assert cals[TARGET]["selectable"] and cals[TARGET]["selected"]
+    assert cals[TARGET]["selectable"] and cals[TARGET]["used_by_pair"] == 1
 
-    r = client.put("/api/google/target", json={"calendar_id": "me@example.com", "confirm_primary": True}, headers=h)
+    r = client.put("/api/pairs/1/target", json={"calendar_id": "me@example.com", "confirm_primary": True}, headers=h)
     assert r.json()["error"]["code"] == "google.primary_locked"
 
-    created = client.post("/api/google/calendars", json={}, headers=h).json()["calendar"]
-    assert created["name"] == "iCloud Sync" and created["created_by_app"] and created["selected"]
-    assert client.get("/api/status").json()["target"]["id"] == created["id"]
+    created = client.post("/api/pairs/1/target", json={}, headers=h).json()["pair"]
+    assert created["target"]["name"] == "Familie (anna@example.com)" and created["target"]["id"] != TARGET
+    status = client.get("/api/status").json()
+    assert status["pairs"][0]["target"]["id"] == created["target"]["id"]
+    cals = {c["id"]: c for c in client.get("/api/google/calendars").json()["calendars"]}
+    assert cals[created["target"]["id"]]["created_by_app"] and cals[created["target"]["id"]]["used_by_pair"] == 1
 
 
 def test_sync_run_endpoint(client: TestClient, configured: None, icloud: FakeICloud, google: FakeGoogle) -> None:

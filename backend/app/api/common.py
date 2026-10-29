@@ -28,6 +28,8 @@ def run_summary(run: SyncRun) -> dict[str, Any]:
         duration = int((run.finished_at - run.started_at).total_seconds() * 1000)
     return {
         "id": run.id,
+        "pair_id": run.pair_id,
+        "calendar_name": run.calendar_name,
         "trigger": run.trigger,
         "dry_run": run.dry_run,
         "status": run.status,

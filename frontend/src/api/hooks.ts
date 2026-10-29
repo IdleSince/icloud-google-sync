@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useMessage } from '@/lib/messages'
 import { ApiError, setCsrfToken } from './client'
 import { api, qk } from './endpoints'
-import type { Session } from './types'
+import type { Pair, Session } from './types'
 
 export const LOGGED_OUT: Session = { authenticated: false, username: null, csrf_token: null }
 
@@ -47,15 +47,52 @@ export function useStatus() {
   return query
 }
 
+/** Everything that shows pairs or which calendar belongs to which pair. */
+export function useInvalidatePairs() {
+  const qc = useQueryClient()
+  return useCallback(() => {
+    for (const queryKey of [qk.status, qk.pairs, qk.icloudCalendars, qk.googleCalendars]) void qc.invalidateQueries({ queryKey })
+  }, [qc])
+}
+
+export function usePairs() {
+  return useQuery({ queryKey: qk.pairs, queryFn: api.pairs.list, select: (r) => r.pairs })
+}
+
+/** Pair id → iCloud calendar name, for log entries and runs that carry `pair_id`. */
+export function usePairNames(): Map<number, string> {
+  const status = useStatus()
+  const pairs = status.data?.pairs
+  return useMemo(() => new Map((pairs ?? []).map((p) => [p.id, p.source.name])), [pairs])
+}
+
+/** Pause or resume one pair. */
+export function useSetPairEnabled() {
+  const { t } = useTranslation()
+  const msg = useMessage()
+  const invalidate = useInvalidatePairs()
+  return useMutation({
+    mutationFn: (vars: { pair: Pair; enabled: boolean }) => api.pairs.setEnabled(vars.pair.id, vars.enabled),
+    onSuccess: ({ pair }) => {
+      toast.success(pair.enabled ? t('pairs.resumed', { name: pair.source.name }) : t('pairs.paused', { name: pair.source.name }))
+    },
+    onError: (e) => toast.error(msg(e)),
+    onSettled: invalidate,
+  })
+}
+
 export function useStartRun() {
   const qc = useQueryClient()
   const { t } = useTranslation()
   const msg = useMessage()
   return useMutation({
-    mutationFn: (vars: { dryRun: boolean; allowMassDeletion?: boolean }) =>
-      api.sync.startRun(vars.dryRun, vars.allowMassDeletion ?? false),
+    /** Without `pair`, every enabled pair gets its own run. */
+    mutationFn: (vars: { dryRun: boolean; allowMassDeletion?: boolean; pair?: Pair }) =>
+      api.sync.startRun(vars.dryRun, vars.allowMassDeletion ?? false, vars.pair?.id),
     onSuccess: (_data, vars) => {
-      toast.success(vars.dryRun ? t('sync.run.startedDry') : t('sync.run.started'))
+      if (vars.dryRun) toast.success(t('sync.run.startedDry'))
+      else if (vars.pair) toast.success(t('sync.run.startedPair', { name: vars.pair.source.name }))
+      else toast.success(t('sync.run.started'))
       void qc.invalidateQueries({ queryKey: qk.status })
     },
     onError: (error) => {

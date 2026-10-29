@@ -63,7 +63,24 @@ class AppSettings(Base):
     default_timezone: Mapped[str] = mapped_column(String(64), default="Europe/Berlin")
     allow_primary_target: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    source_calendar_url: Mapped[str | None] = mapped_column(String(1024))
+    # Calendars this app created (scope calendar.app.created only covers those).
+    created_calendar_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # Last successful run of any pair (dashboard / health information).
+    last_success_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
+
+
+class SyncPair(Base):
+    """One iCloud source calendar mirrored into one Google calendar."""
+
+    __tablename__ = "sync_pairs"
+    __table_args__ = (UniqueConstraint("source_calendar_url", name="uq_pair_source"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    source_calendar_url: Mapped[str] = mapped_column(String(1024))
     source_calendar_name: Mapped[str | None] = mapped_column(String(255))
     source_calendar_owner: Mapped[str | None] = mapped_column(String(255))
     source_calendar_shared: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -71,8 +88,6 @@ class AppSettings(Base):
     target_calendar_id: Mapped[str | None] = mapped_column(String(1024))
     target_calendar_name: Mapped[str | None] = mapped_column(String(255))
     target_is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Calendars this app created (scope calendar.app.created only covers those).
-    created_calendar_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     # Change detection between runs
     last_source_ctag: Mapped[str | None] = mapped_column(String(255))
@@ -80,6 +95,7 @@ class AppSettings(Base):
     last_full_sync_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     last_success_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 
 
@@ -153,6 +169,9 @@ class SyncRun(Base):
     message_params: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     source_calendar_url: Mapped[str | None] = mapped_column(String(1024))
     target_calendar_id: Mapped[str | None] = mapped_column(String(1024))
+    # Plain column (no FK): a removed pair keeps its run history; the name is a snapshot.
+    pair_id: Mapped[int | None] = mapped_column(Integer)
+    calendar_name: Mapped[str | None] = mapped_column(String(255))
 
     items: Mapped[list[SyncRunItem]] = relationship(back_populates="run", cascade="all, delete-orphan", passive_deletes=True, order_by="SyncRunItem.id")
 

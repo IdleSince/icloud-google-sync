@@ -11,7 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 
 from . import scheduler, services
-from .api import auth, google, icloud, status, sync
+from .api import auth, google, icloud, pairs, status, sync
 from .config import APP_VERSION, get_settings
 from .db import run_migrations, session_scope
 from .errors import AppError
@@ -90,7 +90,7 @@ def create_app() -> FastAPI:
             headers.setdefault("Cache-Control", "no-store")
         return response
 
-    for router in (status.public, auth.router, status.router, icloud.router, google.router, sync.router):
+    for router in (status.public, auth.router, status.router, icloud.router, google.router, pairs.router, sync.router):
         app.include_router(router)
 
     @app.get("/api/openapi.json", include_in_schema=False, dependencies=[Depends(require_admin)])

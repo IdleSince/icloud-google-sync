@@ -36,7 +36,7 @@ export interface GoogleStatus {
   error: ApiErrorBody | null
 }
 
-export interface Source {
+export interface PairSource {
   url: string
   id: string
   name: string
@@ -44,10 +44,22 @@ export interface Source {
   shared: boolean
 }
 
-export interface Target {
+export interface PairTarget {
   id: string
   name: string
   is_primary: boolean
+}
+
+/** One synchronized iCloud calendar → one Google calendar. */
+export interface Pair {
+  id: number
+  enabled: boolean
+  source: PairSource
+  target: PairTarget | null
+  suggested_target_name: string
+  last_success_at: string | null
+  mapped_events: number
+  last_run: RunSummary | null
 }
 
 export interface SyncState {
@@ -62,9 +74,9 @@ export interface SyncState {
 export interface AppStatus {
   icloud: ICloudStatus
   google: GoogleStatus
-  source: Source | null
-  target: Target | null
+  pairs: Pair[]
   sync: SyncState
+  /** Sum over all pairs. */
   mapped_events: number
   last_run: RunSummary | null
   recent_errors: LogEntry[]
@@ -89,7 +101,8 @@ export interface DiscoveredCalendar {
   readable: boolean
   event_count: number | null
   error: ApiErrorBody | null
-  selected: boolean
+  /** Pair that syncs this calendar. */
+  pair_id: number | null
 }
 
 export interface ICloudTestResult {
@@ -150,7 +163,8 @@ export interface GoogleCalendar {
   created_by_app: boolean
   selectable: boolean
   lock_reason: GoogleLockReason | null
-  selected: boolean
+  /** Pair that writes into this calendar. */
+  used_by_pair: number | null
   color: string | null
 }
 
@@ -196,6 +210,10 @@ export interface RunDeletions {
 
 export interface RunSummary {
   id: number
+  /** null after the pair was removed. */
+  pair_id: number | null
+  /** iCloud calendar name at run time. */
+  calendar_name: string | null
   trigger: RunTrigger
   dry_run: boolean
   status: RunStatus

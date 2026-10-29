@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from .. import services
@@ -13,7 +14,7 @@ from ..crypto import decrypt, encrypt
 from ..db import get_db
 from ..errors import AppError, ICloudAuthError, ICloudError
 from ..logging_setup import log_event
-from ..models import Credential, utcnow
+from ..models import Credential, SyncPair, utcnow
 from ..security import require_admin
 from .common import iso, mask_email
 
@@ -26,10 +27,6 @@ APP_PASSWORD_RE = re.compile(r"^[a-z]{4}-[a-z]{4}-[a-z]{4}-[a-z]{4}$")
 class CredentialsBody(BaseModel):
     apple_id: str = Field(min_length=3, max_length=320)
     app_password: str = Field(min_length=1, max_length=64)
-
-
-class SourceBody(BaseModel):
-    calendar_url: str = Field(min_length=8, max_length=1024)
 
 
 def icloud_status(db: Session) -> dict[str, Any]:
@@ -74,10 +71,8 @@ def delete_credentials(db: Session = Depends(get_db)) -> Response:
     cred = db.get(Credential, "icloud")
     if cred is not None:
         db.delete(cred)
-    s = services.app_settings(db)
-    s.source_calendar_url = s.source_calendar_name = s.source_calendar_owner = None
-    s.source_calendar_shared = False
-    s.last_source_ctag = None
+    # Pairs stay (a new app password for the same Apple ID keeps working); force a full fetch.
+    db.execute(update(SyncPair).values(last_source_ctag=None))
     log_event("info", "icloud", "icloud.credentials_removed", {}, db=db)
     return Response(status_code=204)
 
@@ -106,7 +101,7 @@ def test_connection(db: Session = Depends(get_db)) -> dict[str, Any]:
 @router.get("/calendars")
 def list_calendars(db: Session = Depends(get_db)) -> dict[str, Any]:
     apple_id, password = services.icloud_credentials(db)
-    selected = services.app_settings(db).source_calendar_url
+    pair_by_id = {calendar_id(url): pid for pid, url in db.execute(select(SyncPair.id, SyncPair.source_calendar_url)).all()}
     try:
         with services.make_caldav(apple_id, password) as client:
             result = discover(client)
@@ -116,7 +111,7 @@ def list_calendars(db: Session = Depends(get_db)) -> dict[str, Any]:
     calendars = []
     for cal in result.calendars:
         data = cal.public()
-        data["selected"] = selected is not None and calendar_id(selected) == cal.id
+        data["pair_id"] = pair_by_id.get(cal.id)
         calendars.append(data)
     return {"calendars": calendars}
 
@@ -131,42 +126,3 @@ def diagnostics(db: Session = Depends(get_db)) -> dict[str, Any]:
         result = diagnose(client)
     log_event("info", "icloud", f"icloud.diagnosis.{result['conclusion']}", {}, db=db)
     return result
-
-
-@router.put("/source")
-def set_source(body: SourceBody, db: Session = Depends(get_db)) -> dict[str, Any]:
-    apple_id, password = services.icloud_credentials(db)
-    with services.make_caldav(apple_id, password) as client:
-        result = discover(client, count=False)
-        match = next((c for c in result.calendars if c.id == calendar_id(body.calendar_url)), None)
-        if match is None:
-            raise AppError("icloud.calendar_not_found", 404)
-        if not match.supports_events:
-            raise AppError("icloud.calendar_no_events", 409)
-        try:
-            client.count_events(match.url)  # proves readability
-        except ICloudError as exc:
-            raise AppError("icloud.calendar_not_readable", 409) from exc
-        if match.error and match.error.get("code") == "icloud.calendar_not_readable":
-            raise AppError("icloud.calendar_not_readable", 409)
-    s = services.app_settings(db)
-    if s.source_calendar_url != match.url:
-        s.last_source_ctag = None
-    s.source_calendar_url = match.url
-    s.source_calendar_name = match.name[:255]
-    s.source_calendar_owner = (match.owner or None) and match.owner[:255]
-    s.source_calendar_shared = match.ownership == "shared"
-    log_event("info", "icloud", "icloud.source_selected", {"calendar_id": match.id, "shared": match.ownership == "shared"}, db=db)
-    return {"source": source_dict(s)}
-
-
-def source_dict(s: Any) -> dict[str, Any] | None:
-    if not s.source_calendar_url:
-        return None
-    return {
-        "url": s.source_calendar_url,
-        "id": calendar_id(s.source_calendar_url),
-        "name": s.source_calendar_name,
-        "owner": s.source_calendar_owner,
-        "shared": s.source_calendar_shared,
-    }

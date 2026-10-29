@@ -39,6 +39,12 @@ export function RunFacts({ run }: { run: RunSummary }) {
       </div>
       {run.message && <p className="text-text-primary">{msg(run.message)}</p>}
       <dl className="grid grid-cols-[repeat(auto-fill,minmax(min(9rem,100%),1fr))] gap-x-4 gap-y-3">
+        {run.calendar_name && (
+          <div className="col-span-full">
+            <dt className="type-footnote text-text-secondary">{t('runs.calendar')}</dt>
+            <dd className="font-medium break-words">{run.calendar_name}</dd>
+          </div>
+        )}
         <div>
           <dt className="type-footnote text-text-secondary">{t('runs.startedAt')}</dt>
           <dd className="tabular">{formatDateTime(run.started_at, locale, { seconds: true })}</dd>

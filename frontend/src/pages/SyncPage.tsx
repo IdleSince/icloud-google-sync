@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { api, qk } from '@/api/endpoints'
 import { useStartRun, useStatus } from '@/api/hooks'
-import type { SyncSettings } from '@/api/types'
+import type { Pair, SyncSettings } from '@/api/types'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Group, Row } from '@/components/common/Group'
@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch'
 import { useLocale } from '@/hooks/use-locale'
 import { formatNumber } from '@/lib/format'
 import { useMessage } from '@/lib/messages'
+import { canSync, guardTrippedPairs } from '@/lib/pairs'
 
 /** The sync page shows a preview; the full list lives in the run detail under Protokolle. */
 const LATEST_ITEMS = 5
@@ -299,16 +300,17 @@ function RunPanel() {
   const locale = useLocale()
   const status = useStatus()
   const startRun = useStartRun()
-  const [confirmRelease, setConfirmRelease] = useState(false)
+  // The pair whose held-back deletions the user is about to release.
+  const [releasePair, setReleasePair] = useState<Pair | null>(null)
   const lastRun = status.data?.last_run ?? null
   const running = status.data?.sync.running ?? false
-  const configured = Boolean(status.data?.source && status.data?.target)
+  const configured = canSync(status.data?.pairs ?? [])
+  const tripped = guardTrippedPairs(status.data?.pairs ?? [])
   const detail = useQuery({
     queryKey: qk.run(lastRun?.id ?? -1),
     queryFn: () => api.sync.run(lastRun!.id),
     enabled: lastRun !== null && lastRun.status !== 'running',
   })
-  const guardTripped = lastRun?.message?.code === 'sync.deletion_guard_tripped'
   const busy = running || startRun.isPending
 
   return (
@@ -326,18 +328,24 @@ function RunPanel() {
         </div>
       </Group>
 
-      {guardTripped && lastRun && (
-        <Alert className="rounded-xl border-0 bg-warning-soft px-4 py-3">
-          <ShieldAlert aria-hidden className="text-warning" />
-          <AlertTitle className="font-semibold">{t('sync.guard.title')}</AlertTitle>
-          <AlertDescription className="flex flex-col gap-3 text-text-primary">
-            <p>{t('sync.guard.body', { count: lastRun.deletions.planned, formatted: formatNumber(lastRun.deletions.planned, locale) })}</p>
-            <Button variant="outline" className="self-start" disabled={busy} onClick={() => setConfirmRelease(true)}>
-              {t('sync.guard.release')}
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* One alert per pair: each pair's guard is released on its own. */}
+      {tripped.map((pair) => {
+        const planned = pair.last_run?.deletions.planned ?? 0
+        return (
+          <Alert key={pair.id} className="rounded-xl border-0 bg-warning-soft px-4 py-3">
+            <ShieldAlert aria-hidden className="text-warning" />
+            <AlertTitle className="font-semibold">{t('sync.guard.title')}</AlertTitle>
+            <AlertDescription className="flex flex-col gap-3 text-text-primary">
+              <p>
+                {t('sync.guard.calendar', { name: pair.source.name })} {t('sync.guard.body', { count: planned, formatted: formatNumber(planned, locale) })}
+              </p>
+              <Button variant="outline" className="self-start pointer-coarse:h-11" disabled={busy} onClick={() => setReleasePair(pair)}>
+                {t('sync.guard.release')}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )
+      })}
 
       <Group title={t('sync.latest.title')}>
         {status.isPending ? (
@@ -378,18 +386,28 @@ function RunPanel() {
       </Group>
 
       <ConfirmDialog
-        open={confirmRelease}
-        onOpenChange={setConfirmRelease}
+        open={releasePair !== null}
+        onOpenChange={(v) => !v && setReleasePair(null)}
         title={t('sync.guard.confirmTitle')}
         description={
           <>
-            <p>{t('sync.guard.confirmBody', { count: lastRun?.deletions.planned ?? 0, formatted: formatNumber(lastRun?.deletions.planned ?? 0, locale) })}</p>
+            <p>{t('sync.guard.calendar', { name: releasePair?.source.name ?? '' })}</p>
+            <p>
+              {t('sync.guard.confirmBody', {
+                count: releasePair?.last_run?.deletions.planned ?? 0,
+                formatted: formatNumber(releasePair?.last_run?.deletions.planned ?? 0, locale),
+              })}
+            </p>
             <p>{t('sync.guard.confirmOnce')}</p>
           </>
         }
         confirmLabel={t('sync.guard.confirm')}
         destructive
-        onConfirm={() => startRun.mutate({ dryRun: false, allowMassDeletion: true })}
+        onConfirm={() => {
+          // Only this pair runs with the release; the others keep their guard.
+          if (releasePair) startRun.mutate({ dryRun: false, allowMassDeletion: true, pair: releasePair })
+          setReleasePair(null)
+        }}
       />
     </div>
   )

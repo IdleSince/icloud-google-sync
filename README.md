@@ -1,9 +1,10 @@
 # iCloud Google Calendar Sync
 
-Selbst gehostete Web-Anwendung, die **einen** privat mit deiner Apple-ID geteilten iCloud-Kalender
-automatisch und **nur in eine Richtung** in einen separaten Google-Kalender überträgt. Danach siehst
-du auf `calendar.google.com` deine eigenen Google-Termine und die Termine des geteilten
-iCloud-Kalenders nebeneinander.
+Selbst gehostete Web-Anwendung, die privat mit deiner Apple-ID geteilte iCloud-Kalender
+automatisch und **nur in eine Richtung** nach Google Kalender überträgt. Jeder geteilte Kalender
+bekommt dabei einen **eigenen** Google-Kalender, benannt nach dem Muster „Arbeit (anna@example.com)“.
+Danach siehst du auf `calendar.google.com` deine eigenen Google-Termine und die Termine der
+geteilten iCloud-Kalender nebeneinander und kannst jeden einzeln ein- und ausblenden.
 
 - Der iCloud-Kalender bleibt privat: **keine öffentlichen Links, keine öffentliche Freigabe.**
 - iCloud wird **nur gelesen**. Die Anwendung verändert dort niemals einen Termin.
@@ -57,7 +58,7 @@ oder mit dem fertigen Image:
 
 ```sh
 docker compose build
-docker run --rm -it icloud-google-sync:1.0.0 python -m app.cli.discover
+docker run --rm -it ghcr.io/OWNER/icloud-google-sync:latest python -m app.cli.discover
 ```
 
 Die Zugangsdaten werden nur abgefragt und nirgends gespeichert. Das Ergebnis endet mit einer
@@ -147,7 +148,7 @@ hinterlegen.
 
 | Scope | Wozu | Standard |
 |---|---|---|
-| `calendar.app.created` | Eigenen Zielkalender „iCloud Sync“ anlegen und **nur darin** Termine verwalten | ja |
+| `calendar.app.created` | Eigene Zielkalender anlegen und **nur darin** Termine verwalten | ja |
 | `calendar.calendarlist.readonly` | Deine Kalender auflisten (Auswahl, Kontoname) | ja |
 | `calendar.events.owned` | Termine in einem **bestehenden** eigenen Kalender verwalten | nur wenn du in der Oberfläche „Erweiterten Zugriff erteilen“ wählst |
 
@@ -159,12 +160,45 @@ ihn in den Einstellungen ausdrücklich freigibst **und** die Auswahl in einem Di
 
 ## 5. Installation und Docker-Start
 
-```sh
-git clone <dein-repo> icloud-google-sync && cd icloud-google-sync
+Das fertige Image baut GitHub automatisch bei jeder Änderung und stellt es unter
+`ghcr.io/OWNER/icloud-google-sync` bereit, für `amd64` und `arm64`, also auch für einen
+Raspberry Pi. Auf dem Server wird **nichts gebaut** und kein Quellcode gebraucht.
 
-# 1. Konfiguration
-cp .env.example .env
-#    -> APP_BASE_URL=https://calsync.example.org eintragen (ohne Schrägstrich am Ende)
+**Voraussetzungen auf dem Server:** Docker mit Compose-Plugin, ein Hostname, dessen DNS-Eintrag
+auf den Server zeigt, Ports 80/443 frei (für den mitgelieferten Caddy mit automatischem HTTPS),
+und der Google-OAuth-Client aus [Abschnitt 4](#4-google-cloud-projekt-calendar-api-oauth-client).
+
+### Variante A: Einrichtungsskript (empfohlen)
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/OWNER/icloud-google-sync/main/deploy/install.sh
+less install.sh        # vor dem Ausführen lesen
+sh install.sh          # legt ./icloud-google-sync an
+```
+
+Das Skript macht Folgendes:
+
+1. Es lädt `docker-compose.yml`, `.env` und die Caddy-Konfiguration herunter.
+2. Es fragt nach dem Hostnamen und danach, ob der mitgelieferte Caddy HTTPS übernehmen soll.
+3. Es **erzeugt** den Schlüssel für die Verschlüsselung und das Login-Passwort.
+4. Es fragt Client-ID und Client-Secret von Google ab.
+5. Es setzt die Dateirechte und startet den Container.
+
+Am Ende zeigt es Adresse, Benutzernamen und den Befehl, mit dem du das Passwort anzeigst. Ein
+zweiter Aufruf überschreibt keine vorhandenen Geheimnisse und keine Einstellungen.
+
+### Variante B: von Hand
+
+```sh
+mkdir icloud-google-sync && cd icloud-google-sync && mkdir -p secrets deploy
+BASE=https://raw.githubusercontent.com/OWNER/icloud-google-sync/main
+curl -fsSL $BASE/docker-compose.yml -o docker-compose.yml
+curl -fsSL $BASE/.env.example       -o .env
+curl -fsSL $BASE/deploy/Caddyfile   -o deploy/Caddyfile
+
+# 1. Konfiguration: in .env APP_BASE_URL=https://calsync.example.org eintragen (ohne / am Ende),
+#    für den mitgelieferten Caddy zusätzlich PUBLIC_HOSTNAME, FORWARDED_ALLOW_IPS=172.16.0.0/12
+#    und COMPOSE_PROFILES=caddy
 
 # 2. Secrets anlegen (siehe secrets/README.md)
 openssl rand -base64 32 | tr '+/' '-_' > secrets/app_encryption_key
@@ -173,11 +207,18 @@ printf '%s' '123-abc.apps.googleusercontent.com' > secrets/google_client_id
 printf '%s' 'GOCSPX-…'                          > secrets/google_client_secret
 chmod 400 secrets/* && sudo chown 10001:10001 secrets/app_encryption_key secrets/admin_password secrets/google_client_id secrets/google_client_secret
 
-# 3. Bauen und starten
-docker compose up -d --build
+# 3. Starten
+docker compose up -d
 docker compose ps            # Status "healthy" abwarten
 docker compose logs -f app   # strukturierte JSON-Logs
 ```
+
+**Update auf eine neue Version:** `docker compose pull && docker compose up -d`. Datenbank-
+migrationen laufen beim Start automatisch. Wer Updates bewusst steuern will, trägt in `.env` eine
+feste Version ein, z. B. `ICGS_IMAGE=ghcr.io/OWNER/icloud-google-sync:1.1.0`.
+
+**Selbst bauen statt herunterladen** (im geklonten Repo):
+`docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`
 
 Die Anwendung lauscht standardmäßig nur auf `127.0.0.1:8000`. Davor gehört ein Reverse Proxy mit TLS:
 
@@ -199,8 +240,6 @@ Die Anwendung lauscht standardmäßig nur auf `127.0.0.1:8000`. Davor gehört ei
 - Zustand (SQLite-Datenbank) liegt im Volume `data` und übersteht Neustarts und Updates.
   Datenbankmigrationen laufen beim Start automatisch.
 
-**Update:** `git pull && docker compose up -d --build`
-
 **Später auf k3s:** Das Image ist zustandslos bis auf `/data`. Für Kubernetes genügen ein
 `Deployment` mit `replicas: 1` und Strategie `Recreate` (SQLite verträgt nur einen Schreiber),
 ein `PersistentVolumeClaim` für `/data`, ein `Secret`, gemountet unter `/run/secrets`, mit denselben
@@ -216,15 +255,24 @@ ein `PersistentVolumeClaim` für `/data`, ein `Secret`, gemountet unter `/run/se
    `secrets/admin_password` anmelden.
 2. **iCloud:** Apple-ID und App-Passwort eintragen → *Speichern*. Die Verbindung wird vor dem
    Speichern geprüft. Danach *Diagnose* ansehen: Steht dort „Geteilter Kalender erreichbar“?
-3. **Kalenderauswahl:** In der Kalenderliste den geteilten Kalender auswählen. Er ist als
-   „Geteilt“ markiert und zeigt den Eigentümer. Die Auswahl wird über eine stabile Kennung
+3. **Kalender wählen:** In der Kalenderliste bei jedem geteilten Kalender *Synchronisieren*
+   wählen, oder alle geteilten Kalender auf einmal hinzufügen. Geteilte Kalender sind als
+   „Geteilt“ markiert und zeigen den Eigentümer. Die Zuordnung wird über eine stabile Kennung
    gespeichert, nicht über die Position in der Liste.
-4. **Google:** *Mit Google verbinden* → Google-Konto wählen → Zugriff erlauben. Danach
-   *Neuen Kalender erstellen* (Name „iCloud Sync“). Er wird automatisch als Ziel ausgewählt.
+4. **Google:** *Mit Google verbinden* → Google-Konto wählen → Zugriff erlauben. Danach für jeden
+   Kalender einen Zielkalender anlegen lassen. Der Name lautet „Kalendername (E-Mail der
+   Eigentümerin)“, z. B. „Arbeit (anna@example.com)“, und lässt sich vor dem Anlegen ändern.
+   Kalender, die du hinzufügst, während Google schon verbunden ist, bekommen ihren Zielkalender
+   sofort automatisch.
 5. **Synchronisierung:** Zuerst *Dry-Run ausführen*. Er zeigt, was angelegt würde, ohne etwas zu
-   schreiben. Dann *Jetzt synchronisieren*. Danach läuft alles automatisch alle 5 Minuten.
-6. Auf `calendar.google.com` erscheint der Kalender „iCloud Sync“ in der linken Leiste.
-   Mit dem Farbpunkt lässt er sich ein- und ausblenden.
+   schreiben. Dann *Jetzt synchronisieren*. Danach läuft alles automatisch alle 5 Minuten,
+   Kalender für Kalender nacheinander.
+6. Auf `calendar.google.com` erscheinen die neuen Kalender in der linken Leiste. Mit dem
+   Farbpunkt lässt sich jeder einzeln ein- und ausblenden, die Farbe stellst du dort auch ein.
+
+> **Kalender pausieren oder entfernen:** Ein Kalender lässt sich pausieren (wird nicht mehr
+> abgeglichen) oder aus der Synchronisierung nehmen. In beiden Fällen löscht die Anwendung weder
+> in Google noch in iCloud etwas. Den Google-Kalender entfernst du bei Bedarf selbst in Google.
 
 > **„Weitere Kalender“ vs. „Meine Kalender“:** Google ordnet Kalender selbst ein. Ein Kalender, den
 > die Anwendung in deinem Konto anlegt, gehört dir und steht deshalb unter **„Meine Kalender“**.
@@ -256,13 +304,13 @@ später aus dem Zeitraum herausfallen, bleiben in Google stehen.
 
 1. Der Abruf aus iCloud war vollständig (keine Abbrüche, keine fehlenden Daten, keine
    Lesefehler).
-2. Der Quellkalender wurde vor dem Lauf eindeutig als der ausgewählte Kalender bestätigt.
+2. Der Quellkalender wurde vor dem Lauf eindeutig als der zugeordnete Kalender bestätigt.
 3. Für jeden Kandidaten meldet iCloud bei gezielter Einzelabfrage „nicht vorhanden“, oder der
    Termin ist in iCloud als abgesagt markiert.
 4. Der Google-Termin trägt die interne Kennzeichnung dieser Anwendung und dieser
    Kalenderzuordnung.
 5. Die **Sicherheitsgrenze** ist nicht überschritten: Standard 25 Löschungen oder 30 % der
-   synchronisierten Termine. Die Prozentgrenze greift ab 5 Löschungen. Eine leere Quelle bei
+   synchronisierten Termine, jeweils pro Kalender. Die Prozentgrenze greift ab 5 Löschungen. Eine leere Quelle bei
    vorhandenen Terminen wird immer gestoppt. Gestoppte Löschungen lassen sich nach Prüfung in der
    Oberfläche einmalig freigeben.
 
@@ -272,7 +320,11 @@ kompletten Lauf ohne jeden Schreibzugriff.
 
 **Weitere Robustheit**
 
-- Unveränderter iCloud-Kalender (gleicher CTag): Der geplante Lauf überspringt den teuren Abruf.
+- Unveränderter iCloud-Kalender (gleicher CTag): Der geplante Lauf überspringt den teuren Abruf,
+  für jeden Kalender einzeln.
+- **Mehrere Kalender:** Jeder Kalender bekommt einen eigenen Lauf mit eigenem Ergebnis. Fällt ein
+  Kalender aus (z. B. Freigabe beendet), laufen die anderen weiter. Nur Anmeldeprobleme bei Apple
+  oder Google stoppen alle, weil sie alle betreffen.
   Spätestens alle 6 Stunden gibt es einen vollständigen Abgleich.
 - Wird ein Termin in Google von Hand gelöscht, legt der nächste vollständige Lauf ihn wieder an.
 - Netzwerkfehler, `429` und `5xx` werden mit exponentiellem Backoff und Zufallsanteil
@@ -365,7 +417,9 @@ Duplikate an.
   werden ausgelassen.
 - **Anhänge, Teilnehmer, Videokonferenz-Links** werden bewusst nicht übertragen.
 - **„Weitere Kalender“:** siehe Hinweis in [Abschnitt 6](#6-ersteinrichtung-in-der-weboberfläche).
-- **Ein Kalenderpaar:** Die Oberfläche synchronisiert genau einen Quell- in einen Zielkalender.
+- **Ein Ziel pro Kalender:** Mehrere iCloud-Kalender in **einen** Google-Kalender zu schreiben, ist
+  nicht vorgesehen. Jeder Google-Kalender gehört genau einem iCloud-Kalender, damit Löschungen
+  und die Sicherheitsgrenze eindeutig bleiben.
 
 ---
 

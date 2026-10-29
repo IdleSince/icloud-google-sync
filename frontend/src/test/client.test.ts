@@ -28,7 +28,7 @@ afterEach(() => {
 })
 
 describe('CSRF header', () => {
-  it.each(['post', 'put', 'del'] as const)('is sent on %s', async (method) => {
+  it.each(['post', 'put', 'patch', 'del'] as const)('is sent on %s', async (method) => {
     setCsrfToken('tok-123')
     const calls = mockFetch(200, { ok: true })
     await (method === 'del' ? http.del('/api/x') : http[method]('/api/x', { a: 1 }))

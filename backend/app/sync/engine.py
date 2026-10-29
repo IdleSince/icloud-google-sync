@@ -30,7 +30,7 @@ from ..caldav.discovery import calendar_id as source_calendar_id
 from ..errors import AppError, GoogleReauthRequired, ICloudAuthError
 from ..google.calendar import GoogleCalendarClient
 from ..logging_setup import short_hash
-from ..models import AppSettings, EventMapping, SyncRun, SyncRunItem, utcnow
+from ..models import AppSettings, EventMapping, SyncPair, SyncRun, SyncRunItem, utcnow
 from .ical import MapOptions, SourceComponent, google_event_id, pair_key, parse_resource
 
 log = logging.getLogger(__name__)
@@ -48,8 +48,8 @@ def add_months(value: datetime, months: int) -> datetime:
     return value.replace(year=year, month=month, day=day)
 
 
-def config_hash(s: AppSettings) -> str:
-    data = [s.past_months, s.future_months, s.default_timezone, s.sync_reminders, s.sync_descriptions, s.source_calendar_url, s.target_calendar_id]
+def config_hash(s: AppSettings, pair: SyncPair) -> str:
+    data = [s.past_months, s.future_months, s.default_timezone, s.sync_reminders, s.sync_descriptions, pair.source_calendar_url, pair.target_calendar_id]
     return hashlib.sha256(json.dumps(data).encode()).hexdigest()
 
 
@@ -86,6 +86,7 @@ class SyncEngine:
         self.cancel = cancel or threading.Event()
         # The run row this engine created/used; lets the caller mark it failed on errors.
         self.run_row: SyncRun | None = None
+        self.pair: SyncPair | None = None
         # No autoflush: pending changes must never hold the SQLite write lock while we wait for
         # the network (a token refresh needs that lock from another session). We commit explicitly.
         self.db.autoflush = False
@@ -125,20 +126,21 @@ class SyncEngine:
 
     # -- entry point ------------------------------------------------------------------
 
-    def should_skip(self, s: AppSettings, ctag: str | None, opts: RunOptions) -> bool:
+    def should_skip(self, s: AppSettings, pair: SyncPair, ctag: str | None, opts: RunOptions) -> bool:
         if opts.force_full or opts.dry_run or opts.trigger != "schedule":
             return False
-        if not ctag or ctag != s.last_source_ctag or config_hash(s) != s.last_config_hash:
+        if not ctag or ctag != pair.last_source_ctag or config_hash(s, pair) != pair.last_config_hash:
             return False
-        last = s.last_full_sync_at
+        last = pair.last_full_sync_at
         return last is not None and utcnow() - last < FULL_SYNC_EVERY
 
-    def run(self, opts: RunOptions, run: SyncRun | None = None) -> SyncRun | None:
-        """Executes one sync. Returns the persisted run, or None if skipped as unchanged."""
+    def run(self, opts: RunOptions, pair: SyncPair, run: SyncRun | None = None) -> SyncRun | None:
+        """Executes one sync of one pair. Returns the persisted run, or None if skipped as unchanged."""
         s = self._settings()
-        if not s.source_calendar_url or not s.target_calendar_id:
+        if not pair.source_calendar_url or not pair.target_calendar_id:
             raise AppError("sync.not_configured", 409)
-        source_url, target_id = s.source_calendar_url, s.target_calendar_id
+        self.pair = pair
+        source_url, target_id = pair.source_calendar_url, pair.target_calendar_id
 
         # 1. Verify the source calendar is the configured one and still exists.
         props = self.caldav.collection_props(source_url)
@@ -153,8 +155,8 @@ class SyncEngine:
             ctag_el = props.props.get(q("D", "sync-token"))
         ctag = (ctag_el.text or "").strip() if ctag_el is not None else None
 
-        if run is None and self.should_skip(s, ctag, opts):
-            s.last_success_at = utcnow()
+        if run is None and self.should_skip(s, pair, ctag, opts):
+            pair.last_success_at = s.last_success_at = utcnow()
             self.db.commit()
             return None
 
@@ -162,6 +164,7 @@ class SyncEngine:
             run = SyncRun(trigger=opts.trigger, dry_run=opts.dry_run, status="running")
             self.db.add(run)
         run.source_calendar_url, run.target_calendar_id = source_url, target_id
+        run.pair_id, run.calendar_name = pair.id, pair.source_calendar_name
         self.db.commit()
         self.run_row = run
 
@@ -264,7 +267,7 @@ class SyncEngine:
         # 7. Deletions.
         planned, blocked = 0, False
         if not st.cancelled:
-            planned, blocked = self._deletions(st, s, components, present_keys, mappings, target_id, pkey, opts)
+            planned, blocked = self._deletions(st, s, pair, components, present_keys, mappings, target_id, pkey, opts)
 
         orphans = 0
         if google_ids is not None:
@@ -307,12 +310,12 @@ class SyncEngine:
         run.finished_at = utcnow()
 
         if not opts.dry_run:
-            s.last_full_sync_at = run.finished_at
-            s.last_config_hash = config_hash(s)
+            pair.last_full_sync_at = run.finished_at
+            pair.last_config_hash = config_hash(s, pair)
             # Only remember the ctag when everything went through, so a partial run is repeated.
-            s.last_source_ctag = ctag if run.status == "success" else None
+            pair.last_source_ctag = ctag if run.status == "success" else None
             if run.status == "success":
-                s.last_success_at = run.finished_at
+                pair.last_success_at = s.last_success_at = run.finished_at
         self.db.commit()
         return run
 
@@ -345,7 +348,7 @@ class SyncEngine:
         return mapping
 
     def _source_url(self) -> str:
-        return self._settings().source_calendar_url or ""
+        return self.pair.source_calendar_url if self.pair is not None else ""
 
     def _sync_event(
         self,
@@ -474,6 +477,7 @@ class SyncEngine:
         self,
         st: _State,
         s: AppSettings,
+        pair: SyncPair,
         components: dict[tuple[str, str], SourceComponent],
         present_keys: set[tuple[str, str]],
         mappings: dict[tuple[str, str], EventMapping],
@@ -509,7 +513,7 @@ class SyncEngine:
             if not mapping.source_href:
                 self._item(st, "skip_delete", title=mapping.title, start=mapping.start_repr, planned=True)
                 continue
-            if not urlparse(mapping.source_href).path.startswith(urlparse(s.source_calendar_url or "").path):
+            if not urlparse(mapping.source_href).path.startswith(urlparse(pair.source_calendar_url).path):
                 # The href does not belong to the source calendar -> never trust it for a deletion.
                 self._item(st, "skip_delete", title=mapping.title, start=mapping.start_repr, planned=True)
                 continue

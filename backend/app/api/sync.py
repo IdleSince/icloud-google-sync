@@ -6,14 +6,14 @@ from zoneinfo import available_timezones
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from .. import scheduler, services
 from ..db import get_db
 from ..errors import AppError
 from ..logging_setup import log_event
-from ..models import AppSettings, SyncRun
+from ..models import AppSettings, SyncPair, SyncRun
 from ..security import require_admin
 from .common import iso, run_detail, run_summary
 
@@ -37,6 +37,7 @@ class SettingsBody(BaseModel):
 class RunBody(BaseModel):
     dry_run: bool = False
     allow_mass_deletion: bool = False
+    pair_id: int | None = Field(default=None, ge=1)
 
 
 def settings_dict(s: AppSettings) -> dict[str, Any]:
@@ -66,10 +67,11 @@ def put_settings(body: SettingsBody, db: Session = Depends(get_db)) -> dict[str,
     data = body.model_dump(exclude_none=True)
     if "default_timezone" in data and data["default_timezone"] not in available_timezones():
         raise AppError("validation.invalid", 422, {"fields": ["default_timezone"]})
-    if data.get("allow_primary_target") is False and s.target_is_primary:
-        # Locking the primary calendar again also unselects it as target.
-        s.target_calendar_id = s.target_calendar_name = None
-        s.target_is_primary = False
+    if data.get("allow_primary_target") is False:
+        # Locking the primary calendar again also unselects it wherever it is a target.
+        db.execute(
+            update(SyncPair).where(SyncPair.target_is_primary.is_(True)).values(target_calendar_id=None, target_calendar_name=None, target_is_primary=False)
+        )
     mapping = {"enabled": "sync_enabled"}
     for key, value in data.items():
         setattr(s, mapping.get(key, key), value)
@@ -82,8 +84,8 @@ def put_settings(body: SettingsBody, db: Session = Depends(get_db)) -> dict[str,
 
 @router.post("/runs", status_code=202)
 def start_run(body: RunBody) -> JSONResponse:
-    run_id = services.start_manual_run(body.dry_run, body.allow_mass_deletion)
-    return JSONResponse({"run_id": run_id}, status_code=202)
+    run_ids = services.start_manual_run(body.dry_run, body.allow_mass_deletion, body.pair_id)
+    return JSONResponse({"run_id": run_ids[0], "run_ids": run_ids}, status_code=202)
 
 
 @router.get("/runs")

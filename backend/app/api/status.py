@@ -11,11 +11,12 @@ from sqlalchemy.orm import Session
 from .. import scheduler, services
 from ..config import APP_VERSION, get_settings
 from ..db import current_migration, get_db
-from ..models import EventMapping, LogEntry, SyncRun
+from ..models import LogEntry, SyncRun
 from ..security import require_admin
 from .common import iso, log_entry, run_summary
-from .google import google_status, target_dict
-from .icloud import icloud_status, source_dict
+from .google import google_status
+from .icloud import icloud_status
+from .pairs import all_pairs
 
 public = APIRouter(tags=["health"])
 router = APIRouter(prefix="/api", tags=["status"], dependencies=[Depends(require_admin)])
@@ -30,22 +31,13 @@ def health(db: Session = Depends(get_db)) -> dict[str, str]:
 @router.get("/status")
 def status(db: Session = Depends(get_db)) -> dict[str, Any]:
     s = services.app_settings(db)
-    mapped = 0
-    if s.source_calendar_url and s.target_calendar_id:
-        mapped = db.execute(
-            select(func.count(EventMapping.id)).where(
-                EventMapping.source_calendar_url == s.source_calendar_url,
-                EventMapping.target_calendar_id == s.target_calendar_id,
-                EventMapping.kind != "override",
-            )
-        ).scalar_one()
+    pairs = all_pairs(db)
     last_run = db.execute(select(SyncRun).order_by(SyncRun.id.desc()).limit(1)).scalar_one_or_none()
     errors = db.execute(select(LogEntry).where(LogEntry.level == "error").order_by(LogEntry.id.desc()).limit(5)).scalars().all()
     return {
         "icloud": icloud_status(db),
         "google": google_status(db),
-        "source": source_dict(s),
-        "target": target_dict(s),
+        "pairs": pairs,
         "sync": {
             "enabled": s.sync_enabled,
             "interval_minutes": s.interval_minutes,
@@ -54,7 +46,7 @@ def status(db: Session = Depends(get_db)) -> dict[str, Any]:
             "last_success_at": iso(s.last_success_at),
             "next_run_at": iso(scheduler.next_run_at()) if s.sync_enabled else None,
         },
-        "mapped_events": mapped,
+        "mapped_events": sum(p["mapped_events"] for p in pairs),
         "last_run": run_summary(last_run) if last_run else None,
         "recent_errors": [log_entry(e) for e in errors],
     }

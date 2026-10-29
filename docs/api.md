@@ -52,7 +52,10 @@ would load scripts from an external CDN.
 | `google.calendar_not_found` | 404 | Target calendar does not exist / not accessible |
 | `google.calendar_not_writable` | 409 | Calendar is read-only for this account |
 | `google.primary_locked` | 409 | Primary calendar selected without unlocking it |
-| `sync.not_configured` | 409 | Source or target missing |
+| `google.target_in_use` | 409 | That Google calendar already belongs to another pair |
+| `pair.not_found` | 404 | Unknown pair id |
+| `pair.exists` | 409 | This iCloud calendar is already synchronized |
+| `sync.not_configured` | 409 | No pair with a target calendar (or the given pair has none) |
 | `sync.already_running` | 409 | A run is already in progress |
 | `internal.error` | 500 | Unexpected error (details only in the server log) |
 
@@ -66,7 +69,8 @@ Informational log codes (`LogEntry.code`, level `info`): `auth.login`,
 `system.started`, `system.stopped`, `settings.updated`,
 `icloud.credentials_saved`, `icloud.credentials_removed`, `icloud.source_selected`,
 `icloud.diagnosis.<conclusion>` (see `Diagnostics.conclusion`), `google.connected`,
-`google.disconnected`, `google.calendar_created`, `google.target_selected`.
+`google.disconnected`, `google.calendar_created`, `google.target_selected`,
+`pair.enabled`, `pair.disabled`, `pair.removed`. Codes that concern one pair carry `params.pair_id`.
 Warnings/errors in the log reuse the error codes above.
 
 ## Auth
@@ -104,8 +108,7 @@ Login does **not** require a CSRF token (there is no session yet); it is protect
     "last_checked_at": "…",
     "error": null
   },
-  "source": { "url": "…", "id": "c_ab12…", "name": "Familie", "owner": "Anna", "shared": true } | null,
-  "target": { "id": "…@group.calendar.google.com", "name": "iCloud Sync", "is_primary": false } | null,
+  "pairs": [ Pair, … ],
   "sync": {
     "enabled": true,
     "interval_minutes": 5,
@@ -114,8 +117,8 @@ Login does **not** require a CSRF token (there is no session yet); it is protect
     "last_success_at": "…" | null,
     "next_run_at": "…" | null
   },
-  "mapped_events": 132,
-  "last_run": RunSummary | null,
+  "mapped_events": 132,                  // sum over all pairs
+  "last_run": RunSummary | null,         // newest run of any pair
   "recent_errors": [ LogEntry, … ]       // max 5, newest first
 }
 ```
@@ -125,11 +128,10 @@ Login does **not** require a CSRF token (there is no session yet); it is protect
 | Method | Path | Body | Response |
 |---|---|---|---|
 | PUT | `/api/icloud/credentials` | `{ apple_id, app_password }` | `ICloudStatus` (credentials are tested before they are stored) |
-| DELETE | `/api/icloud/credentials` | – | `204` (also clears the selected source) |
+| DELETE | `/api/icloud/credentials` | – | `204` (pairs are kept) |
 | POST | `/api/icloud/test` | – | `{ ok: bool, error: Error\|null, principal_found: bool, calendar_home_found: bool }` |
 | GET | `/api/icloud/calendars` | – | `{ calendars: DiscoveredCalendar[] }` |
 | GET | `/api/icloud/diagnostics` | – | `Diagnostics` |
-| PUT | `/api/icloud/source` | `{ calendar_url }` | `{ source: Source }` |
 
 `DiscoveredCalendar`
 
@@ -148,7 +150,7 @@ Login does **not** require a CSRF token (there is no session yet); it is protect
   "readable": true,
   "event_count": 214 | null,
   "error": Error | null,
-  "selected": false
+  "pair_id": 3 | null               // pair that syncs this calendar
 }
 ```
 
@@ -182,9 +184,7 @@ credentials) for technical troubleshooting.
 | GET | `/api/google/oauth/callback` | query `code`, `state` | `302` → `/google?connected=1` or `/google?error=<code>` |
 | POST | `/api/google/test` | – | `{ ok, error, account }` |
 | GET | `/api/google/calendars` | – | `{ calendars: GoogleCalendar[] }` |
-| POST | `/api/google/calendars` | `{ name?: "iCloud Sync", select?: true }` | `{ calendar: GoogleCalendar }` |
-| PUT | `/api/google/target` | `{ calendar_id, confirm_primary?: false }` | `{ target: Target }` |
-| DELETE | `/api/google/connection` | – | `204` (token revoked at Google, then deleted) |
+| DELETE | `/api/google/connection` | – | `204` (token revoked at Google, then deleted; all pairs lose their target) |
 
 `GoogleCalendar`
 
@@ -197,8 +197,37 @@ credentials) for technical troubleshooting.
   "created_by_app": true,
   "selectable": true,
   "lock_reason": null | "primary_locked" | "not_writable" | "scope_missing",
-  "selected": true,
+  "used_by_pair": 3 | null,
   "color": "#9fc6e7" | null
+}
+```
+
+## Pairs
+
+Every synchronized iCloud calendar is a *pair*: one iCloud calendar → one Google
+calendar. A Google calendar can belong to one pair only (`google.target_in_use`).
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| GET | `/api/pairs` | – | `{ pairs: Pair[] }` (oldest first) |
+| POST | `/api/pairs` | `{ calendar_url, create_target?: true }` | `201 { pair: Pair }`; when Google is connected a Google calendar named `suggested_target_name` is created and selected |
+| PATCH | `/api/pairs/{id}` | `{ enabled?: bool }` | `{ pair: Pair }` |
+| DELETE | `/api/pairs/{id}` | – | `204`; stops syncing, nothing is deleted in Google or iCloud, run history stays |
+| PUT | `/api/pairs/{id}/target` | `{ calendar_id, confirm_primary?: false }` | `{ pair: Pair }` |
+| POST | `/api/pairs/{id}/target` | `{ name?: string }` | `{ pair: Pair }` – creates a new Google calendar (default `suggested_target_name`) |
+
+`Pair`
+
+```json
+{
+  "id": 3,
+  "enabled": true,
+  "source": { "url": "…", "id": "c_ab12…", "name": "Arbeit", "owner": "anna@example.com", "shared": true },
+  "target": { "id": "…@group.calendar.google.com", "name": "Arbeit (anna@example.com)", "is_primary": false } | null,
+  "suggested_target_name": "Arbeit (anna@example.com)",
+  "last_success_at": "…" | null,
+  "mapped_events": 43,
+  "last_run": RunSummary | null
 }
 ```
 
@@ -208,7 +237,7 @@ credentials) for technical troubleshooting.
 |---|---|---|---|
 | GET | `/api/sync/settings` | – | `SyncSettings` |
 | PUT | `/api/sync/settings` | `SyncSettings` (partial allowed) | `SyncSettings` |
-| POST | `/api/sync/runs` | `{ dry_run: bool, allow_mass_deletion: bool }` | `202 { run_id }`, `409 sync.already_running` |
+| POST | `/api/sync/runs` | `{ dry_run: bool, allow_mass_deletion: bool, pair_id?: int }` | `202 { run_id, run_ids }` – one run per pair (all enabled pairs, or only `pair_id`); `409 sync.already_running` |
 | GET | `/api/sync/runs` | query `limit` (≤100), `offset`, `status` | `{ items: RunSummary[], total }` |
 | GET | `/api/sync/runs/{id}` | – | `RunDetail` |
 | GET | `/api/sync/state` | – | `{ running, current_run_id, next_run_at }` |
@@ -236,6 +265,8 @@ credentials) for technical troubleshooting.
 ```json
 {
   "id": 42,
+  "pair_id": 3 | null,             // null after the pair was removed
+  "calendar_name": "Arbeit" | null, // iCloud calendar name at run time
   "trigger": "schedule | manual | dry_run | startup",
   "dry_run": false,
   "status": "running | success | partial | failed | skipped",
@@ -271,7 +302,7 @@ credentials) for technical troubleshooting.
 
 ```json
 {
-  "app_version": "1.0.0",
+  "app_version": "1.1.0",
   "python_version": "3.13.5",
   "base_url": "https://calsync.example.org",
   "redirect_uri": "https://calsync.example.org/api/google/oauth/callback",

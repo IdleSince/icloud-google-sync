@@ -2,6 +2,32 @@
 
 Alle für Anwender sichtbaren Änderungen an iCloud Google Calendar Sync.
 
+## 1.1.0 – 29.10.2026
+
+### Neu
+
+- Du kannst jetzt **mehrere** geteilte iCloud-Kalender gleichzeitig übertragen. Jeder bekommt in
+  Google einen eigenen Kalender mit dem Namen des Kalenders und der E-Mail der Person, die ihn
+  geteilt hat, z. B. „Arbeit (anna@example.com)“. So kannst du in Google jeden einzeln ein- und
+  ausblenden und ihm eine eigene Farbe geben.
+- Unter iCloud fügst du jeden Kalender mit einem Klick hinzu, oder alle geteilten Kalender auf
+  einmal. Ist Google schon verbunden, wird der passende Google-Kalender sofort angelegt.
+- Einzelne Kalender lassen sich pausieren oder aus der Synchronisierung nehmen. Dabei wird weder in
+  Google noch in iCloud etwas gelöscht.
+
+### Verbessert
+
+- Das Dashboard zeigt jeden Kalender mit seinem Zielkalender, der Anzahl der Termine und dem
+  letzten Lauf. Im Verlauf steht bei jedem Lauf, welcher Kalender abgeglichen wurde.
+- Hat ein Kalender ein Problem, etwa weil die Freigabe beendet wurde, laufen die anderen Kalender
+  trotzdem weiter.
+
+### Geändert
+
+- **Bitte prüfen nach dem Update:** Eine bestehende Einrichtung wird automatisch übernommen. Der
+  bisherige Kalender und sein Google-Kalender bleiben erhalten. Weitere Kalender fügst du unter
+  iCloud hinzu.
+
 ## 1.0.0 – 28.10.2026
 
 ### Neu

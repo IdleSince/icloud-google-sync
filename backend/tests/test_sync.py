@@ -9,11 +9,11 @@ from sqlalchemy import delete, select
 
 from app import services
 from app.db import session_scope
-from app.models import AppSettings, Credential, EventMapping, SyncRun
+from app.models import AppSettings, Credential, EventMapping, SyncPair, SyncRun
 from app.sync.engine import RunOptions
 from app.sync.lock import pair_lock
 
-from .conftest import TARGET
+from .conftest import SOURCE_URL, TARGET
 from .fakes import FakeCalendar, FakeGoogle, FakeICloud, ics, vevent
 
 pytestmark = pytest.mark.usefixtures("configured")
@@ -21,7 +21,9 @@ pytestmark = pytest.mark.usefixtures("configured")
 
 def run(**kwargs: object) -> SyncRun:
     opts = RunOptions(trigger=str(kwargs.pop("trigger", "manual")), force_full=True, **kwargs)  # type: ignore[arg-type]
-    run_id = services.execute_run(opts)
+    run_ids = services.execute_run(opts)
+    assert len(run_ids) <= 1, "single pair configured"
+    run_id = run_ids[0] if run_ids else None
     with session_scope() as db:
         if run_id is None:
             row = db.execute(select(SyncRun).order_by(SyncRun.id.desc())).scalars().first()
@@ -41,6 +43,14 @@ def settings(**values: object) -> None:
         assert s is not None
         for k, v in values.items():
             setattr(s, k, v)
+
+
+def pair(**values: object) -> None:
+    with session_scope() as db:
+        p = db.get(SyncPair, 1)
+        assert p is not None
+        for k, v in values.items():
+            setattr(p, k, v)
 
 
 def mapping_count() -> int:
@@ -310,10 +320,7 @@ def test_partial_failure_keeps_going(icloud: FakeICloud, google: FakeGoogle, sou
     add_events(icloud, source, 3)
     from app.sync.ical import google_event_id, pair_key
 
-    with session_scope() as db:
-        s = db.get(AppSettings, 1)
-        assert s is not None
-        bad = google_event_id(pair_key(s.source_calendar_url or "", TARGET), "e1@test")
+    bad = google_event_id(pair_key(SOURCE_URL, TARGET), "e1@test")
     google.fail_event_ids[bad] = 400
     result = run()
     assert result.status == "partial" and result.message_code == "sync.partial_failure"
@@ -375,7 +382,7 @@ def test_missing_source_calendar_fails(icloud: FakeICloud, google: FakeGoogle, s
 
 
 def test_primary_target_requires_unlock(google: FakeGoogle) -> None:
-    settings(target_calendar_id="me@example.com", target_is_primary=True)
+    pair(target_calendar_id="me@example.com", target_is_primary=True)
     result = run()
     assert result.status == "failed" and result.message_code == "google.primary_locked"
     assert google.writes() == []
@@ -399,7 +406,7 @@ def test_parallel_runs_are_prevented(icloud: FakeICloud, google: FakeGoogle, sou
         with pytest.raises(Exception) as exc:
             services.start_manual_run(False, False)
         assert getattr(exc.value, "code", "") == "sync.already_running"
-        assert services.execute_run(RunOptions(trigger="schedule")) is None
+        assert services.execute_run(RunOptions(trigger="schedule")) == []
         assert google.writes() == []
     finally:
         release.set()
@@ -410,7 +417,7 @@ def test_scheduled_run_skips_when_ctag_unchanged(icloud: FakeICloud, google: Fak
     add_events(icloud, source, 2)
     run()
     calls = len(icloud.requests)
-    assert services.execute_run(RunOptions(trigger="schedule")) is None
+    assert services.execute_run(RunOptions(trigger="schedule")) == []
     report_calls = [r for r in icloud.requests[calls:] if r[0] == "REPORT"]
     assert report_calls == [], "unchanged ctag must skip the expensive fetch"
 
@@ -429,10 +436,7 @@ def test_detached_override_is_cleaned_up(icloud: FakeICloud, google: FakeGoogle,
     icloud.put_event(source, "s.ics", ics(SERIES, override))
     from app.sync.ical import google_event_id, pair_key
 
-    with session_scope() as db:
-        s = db.get(AppSettings, 1)
-        assert s is not None
-        master_id = google_event_id(pair_key(s.source_calendar_url or "", TARGET), "s@test")
+    master_id = google_event_id(pair_key(SOURCE_URL, TARGET), "s@test")
     google.no_instance_for.add(master_id)  # Google does not know that occurrence -> standalone copy
     run()
     live = google.live_events(TARGET)

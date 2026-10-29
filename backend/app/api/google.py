@@ -6,8 +6,8 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, Field
-from sqlalchemy import delete
+from pydantic import BaseModel
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from .. import services
@@ -17,7 +17,7 @@ from ..db import get_db
 from ..errors import AppError, GoogleError
 from ..google.oauth import SCOPE_EVENTS_OWNED, authorization_url, granted_scopes, pkce_pair, store_tokens
 from ..logging_setup import log_event
-from ..models import AppSettings, Credential, OAuthState, utcnow
+from ..models import AppSettings, Credential, OAuthState, SyncPair, utcnow
 from ..security import current_session, require_admin
 from .common import iso
 
@@ -29,16 +29,6 @@ STATE_TTL = timedelta(minutes=10)
 
 class StartBody(BaseModel):
     extended: bool = False
-
-
-class CreateCalendarBody(BaseModel):
-    name: str = Field(default="iCloud Sync", min_length=1, max_length=255)
-    select: bool = True
-
-
-class TargetBody(BaseModel):
-    calendar_id: str = Field(min_length=1, max_length=1024)
-    confirm_primary: bool = False
 
 
 def _created_ids(s: AppSettings) -> list[str]:
@@ -156,7 +146,7 @@ def test(db: Session = Depends(get_db)) -> dict[str, Any]:
     return {"ok": error is None, "error": error, "account": account}
 
 
-def _calendar_view(entry: dict[str, Any], s: AppSettings, extended: bool) -> dict[str, Any]:
+def _calendar_view(entry: dict[str, Any], s: AppSettings, extended: bool, used_by: dict[str, int]) -> dict[str, Any]:
     cal_id = str(entry.get("id"))
     created = cal_id in _created_ids(s)
     role = entry.get("accessRole", "reader")
@@ -175,7 +165,7 @@ def _calendar_view(entry: dict[str, Any], s: AppSettings, extended: bool) -> dic
         "created_by_app": created,
         "selectable": lock is None,
         "lock_reason": lock,
-        "selected": cal_id == s.target_calendar_id,
+        "used_by_pair": used_by.get(cal_id),
         "color": entry.get("backgroundColor"),
     }
 
@@ -184,72 +174,17 @@ def _calendar_view(entry: dict[str, Any], s: AppSettings, extended: bool) -> dic
 def calendars(db: Session = Depends(get_db)) -> dict[str, Any]:
     s = services.app_settings(db)
     extended = SCOPE_EVENTS_OWNED in granted_scopes(db.get(Credential, "google"))
+    rows = db.execute(select(SyncPair.id, SyncPair.target_calendar_id).where(SyncPair.target_calendar_id.is_not(None))).all()
+    used_by = {str(tid): pid for pid, tid in rows}
     client, oauth = services.make_google()
     try:
         entries = client.list_calendars()
     finally:
         client.close()
         oauth.close()
-    views = [_calendar_view(e, s, extended) for e in entries]
-    views.sort(key=lambda c: (not c["selected"], not c["created_by_app"], c["primary"], str(c["name"]).casefold()))
+    views = [_calendar_view(e, s, extended, used_by) for e in entries]
+    views.sort(key=lambda c: (c["used_by_pair"] is None, not c["created_by_app"], c["primary"], str(c["name"]).casefold()))
     return {"calendars": views}
-
-
-@router.post("/calendars", dependencies=admin)
-def create_calendar(body: CreateCalendarBody, db: Session = Depends(get_db)) -> dict[str, Any]:
-    s = services.app_settings(db)
-    client, oauth = services.make_google()
-    try:
-        created = client.create_calendar(body.name.strip(), s.default_timezone)
-        entry = client.get_calendar_entry(created["id"]) or {**created, "accessRole": "owner"}
-    finally:
-        client.close()
-        oauth.close()
-    s.created_calendar_ids = [*_created_ids(s), created["id"]]
-    if body.select:
-        _select(s, entry, confirm_primary=False)
-    db.flush()
-    log_event("info", "google", "google.calendar_created", {}, db=db)
-    return {"calendar": _calendar_view(entry, s, False)}
-
-
-def _select(s: AppSettings, entry: dict[str, Any], confirm_primary: bool) -> None:
-    if entry.get("primary"):
-        if not s.allow_primary_target or not confirm_primary:
-            raise AppError("google.primary_locked", 409)
-    if entry.get("accessRole") not in ("owner", "writer"):
-        raise AppError("google.calendar_not_writable", 409)
-    if s.target_calendar_id != entry["id"]:
-        s.last_source_ctag = None
-    s.target_calendar_id = str(entry["id"])
-    s.target_calendar_name = str(entry.get("summaryOverride") or entry.get("summary") or entry["id"])[:255]
-    s.target_is_primary = bool(entry.get("primary"))
-
-
-@router.put("/target", dependencies=admin)
-def set_target(body: TargetBody, db: Session = Depends(get_db)) -> dict[str, Any]:
-    s = services.app_settings(db)
-    extended = SCOPE_EVENTS_OWNED in granted_scopes(db.get(Credential, "google"))
-    client, oauth = services.make_google()
-    try:
-        entry = client.get_calendar_entry(body.calendar_id)
-    finally:
-        client.close()
-        oauth.close()
-    if entry is None:
-        raise AppError("google.calendar_not_found", 404)
-    view = _calendar_view(entry, s, extended)
-    if view["lock_reason"] == "scope_missing":
-        raise AppError("google.scope_missing", 403)
-    _select(s, entry, body.confirm_primary)
-    log_event("info", "google", "google.target_selected", {"primary": bool(entry.get("primary"))}, db=db)
-    return {"target": target_dict(s)}
-
-
-def target_dict(s: AppSettings) -> dict[str, Any] | None:
-    if not s.target_calendar_id:
-        return None
-    return {"id": s.target_calendar_id, "name": s.target_calendar_name, "is_primary": s.target_is_primary}
 
 
 @router.delete("/connection", status_code=204, dependencies=admin)
@@ -263,9 +198,7 @@ def disconnect(db: Session = Depends(get_db)) -> Response:
             finally:
                 oauth.close()
         db.delete(cred)
-    s = services.app_settings(db)
-    s.target_calendar_id = s.target_calendar_name = None
-    s.target_is_primary = False
-    s.last_source_ctag = None
+    # Pairs keep their iCloud side; the Google calendars are chosen again after reconnecting.
+    db.execute(update(SyncPair).values(target_calendar_id=None, target_calendar_name=None, target_is_primary=False, last_source_ctag=None))
     log_event("info", "google", "google.disconnected", {}, db=db)
     return Response(status_code=204)
