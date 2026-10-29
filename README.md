@@ -234,9 +234,12 @@ gebraucht, der Abgleich läuft ohne sie weiter.
    - Unter **Environment variables** eintragen: `APP_ENCRYPTION_KEY`, `ADMIN_PASSWORD`,
      `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
    - *Deploy the stack*.
-4. **Oberfläche öffnen:** auf deinem PC `ssh -L 8000:127.0.0.1:8000 benutzer@docker-host`
-   ausführen und im Browser `http://localhost:8000` aufrufen. Der Port ist auf dem Docker-Host nur
-   an `127.0.0.1` gebunden und damit im Netzwerk unsichtbar.
+4. **Oberfläche öffnen:** auf deinem PC `ssh -L 8000:127.0.0.1:8090 benutzer@docker-host`
+   ausführen und im Browser `http://localhost:8000` aufrufen. Auf dem Docker-Host lauscht der
+   Container auf Port 8090, weil Portainer selbst oft 8000 belegt. Er ist dort nur an
+   `127.0.0.1` gebunden und damit im Netzwerk unsichtbar. Der Tunnel bildet ihn auf deinem PC
+   wieder auf 8000 ab. Ist auch 8090 belegt, setzt du in Portainer `HOST_PORT` auf einen freien
+   Port und passt die Tunnel-Zeile an.
 
 > [!NOTE]
 > Wer die Oberfläche lieber direkt im Heimnetz unter einer eigenen Adresse öffnen will, braucht

@@ -6,9 +6,10 @@
 #   or "Web editor":            paste this file
 # Then fill in the environment variables below (section "Environment variables").
 #
-# The web UI listens on 127.0.0.1:8000 of the Docker host only - not reachable from the network.
-# Open it through an SSH tunnel from your PC:
-#   ssh -L 8000:127.0.0.1:8000 user@docker-host      then browse to  http://localhost:8000
+# The web UI listens on 127.0.0.1:8090 of the Docker host only - not reachable from the network.
+# (8090, because Portainer itself often occupies 8000.) Open it through an SSH tunnel from your PC:
+#   ssh -L 8000:127.0.0.1:8090 user@docker-host      then browse to  http://localhost:8000
+# The tunnel maps it back to port 8000 on your PC, so APP_BASE_URL and the Google redirect URI stay.
 # Google accepts http://localhost as OAuth redirect, so nothing has to be exposed to the internet.
 
 services:
@@ -18,7 +19,7 @@ services:
     init: true
     stop_grace_period: 40s
     ports:
-      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8000}:8000"
+      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8090}:8000"
     environment:
       # Address you type into the browser. Keep http://localhost:8000 for the SSH-tunnel setup.
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8000}
