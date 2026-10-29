@@ -58,7 +58,7 @@ oder mit dem fertigen Image:
 
 ```sh
 docker compose build
-docker run --rm -it ghcr.io/OWNER/icloud-google-sync:latest python -m app.cli.discover
+docker run --rm -it ghcr.io/dustin284/icloud-google-sync:latest python -m app.cli.discover
 ```
 
 Die Zugangsdaten werden nur abgefragt und nirgends gespeichert. Das Ergebnis endet mit einer
@@ -161,7 +161,7 @@ ihn in den Einstellungen ausdrücklich freigibst **und** die Auswahl in einem Di
 ## 5. Installation und Docker-Start
 
 Das fertige Image baut GitHub automatisch bei jeder Änderung und stellt es unter
-`ghcr.io/OWNER/icloud-google-sync` bereit, für `amd64` und `arm64`, also auch für einen
+`ghcr.io/dustin284/icloud-google-sync` bereit, für `amd64` und `arm64`, also auch für einen
 Raspberry Pi. Auf dem Server wird **nichts gebaut** und kein Quellcode gebraucht.
 
 **Voraussetzungen auf dem Server:** Docker mit Compose-Plugin, ein Hostname, dessen DNS-Eintrag
@@ -171,7 +171,7 @@ und der Google-OAuth-Client aus [Abschnitt 4](#4-google-cloud-projekt-calendar-a
 ### Variante A: Einrichtungsskript (empfohlen)
 
 ```sh
-curl -fsSLO https://raw.githubusercontent.com/OWNER/icloud-google-sync/main/deploy/install.sh
+curl -fsSLO https://raw.githubusercontent.com/Dustin284/icloud-google-sync/main/deploy/install.sh
 less install.sh        # vor dem Ausführen lesen
 sh install.sh          # legt ./icloud-google-sync an
 ```
@@ -191,7 +191,7 @@ zweiter Aufruf überschreibt keine vorhandenen Geheimnisse und keine Einstellung
 
 ```sh
 mkdir icloud-google-sync && cd icloud-google-sync && mkdir -p secrets deploy
-BASE=https://raw.githubusercontent.com/OWNER/icloud-google-sync/main
+BASE=https://raw.githubusercontent.com/Dustin284/icloud-google-sync/main
 curl -fsSL $BASE/docker-compose.yml -o docker-compose.yml
 curl -fsSL $BASE/.env.example       -o .env
 curl -fsSL $BASE/deploy/Caddyfile   -o deploy/Caddyfile
@@ -215,7 +215,7 @@ docker compose logs -f app   # strukturierte JSON-Logs
 
 **Update auf eine neue Version:** `docker compose pull && docker compose up -d`. Datenbank-
 migrationen laufen beim Start automatisch. Wer Updates bewusst steuern will, trägt in `.env` eine
-feste Version ein, z. B. `ICGS_IMAGE=ghcr.io/OWNER/icloud-google-sync:1.1.0`.
+feste Version ein, z. B. `ICGS_IMAGE=ghcr.io/dustin284/icloud-google-sync:1.1.0`.
 
 **Selbst bauen statt herunterladen** (im geklonten Repo):
 `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`

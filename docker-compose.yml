@@ -14,7 +14,7 @@ name: icloud-google-sync
 
 services:
   app:
-    image: ${ICGS_IMAGE:-ghcr.io/OWNER/icloud-google-sync:latest}
+    image: ${ICGS_IMAGE:-ghcr.io/dustin284/icloud-google-sync:latest}
     restart: unless-stopped
     init: true
     stop_grace_period: 40s

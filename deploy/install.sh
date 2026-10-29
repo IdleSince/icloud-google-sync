@@ -1,7 +1,7 @@
 #!/bin/sh
 # iCloud Google Calendar Sync - one-time setup on the target host.
 #
-#   curl -fsSLO https://raw.githubusercontent.com/OWNER/icloud-google-sync/main/deploy/install.sh
+#   curl -fsSLO https://raw.githubusercontent.com/Dustin284/icloud-google-sync/main/deploy/install.sh
 #   less install.sh            # read it first
 #   sh install.sh [directory]  # default: ./icloud-google-sync
 #
@@ -10,7 +10,7 @@
 # from the prebuilt image. Running it again keeps existing secrets and settings.
 set -eu
 
-REPO="${ICGS_REPO:-OWNER/icloud-google-sync}"
+REPO="${ICGS_REPO:-Dustin284/icloud-google-sync}"
 BRANCH="${ICGS_BRANCH:-main}"
 RAW="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 DIR="${1:-icloud-google-sync}"
