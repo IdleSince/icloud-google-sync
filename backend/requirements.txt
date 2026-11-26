@@ -1,7 +1,7 @@
 # Runtime dependencies - exact versions on purpose (reproducible images).
 fastapi==0.162.0
 uvicorn[standard]==0.54.0
-icalendar==7.3.0
+icalendar==7.3.2
 sqlalchemy==2.1.6
 alembic==1.20.1
 apscheduler==3.11.3
